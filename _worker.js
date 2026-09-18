@@ -1,109 +1,12 @@
-export default {
-  async fetch(request, env) {
-    const url = new URL(request.url);
-
-    if (url.pathname === "/api/xauusd") {
-      const requested = url.searchParams.get("interval") || "15m";
-      const allowed = new Set(["5m", "15m", "30m", "1h", "4h"]);
-      const safeInterval = allowed.has(requested) ? requested : "15m";
-
-      // Primary: public Biquote MT5 XAUUSD feed. No API key required.
-      try {
-        const endpoint = new URL("https://biquote.io/api/XAUUSD/ohlc");
-        endpoint.searchParams.set("interval", safeInterval);
-        endpoint.searchParams.set("limit", "1000");
-        const response = await fetch(endpoint.toString(), {
-          headers: { "Accept": "application/json", "User-Agent": "Smart-Gold-V10-Pro/1.0" },
-          cf: { cacheTtl: 15, cacheEverything: true }
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          const bars = Array.isArray(data?.bars) ? data.bars : [];
-          const valid = bars.filter(b => b?.openTime &&
-            Number.isFinite(Number(b.open)) && Number.isFinite(Number(b.high)) &&
-            Number.isFinite(Number(b.low)) && Number.isFinite(Number(b.close)));
-
-          if (valid.length >= 220) {
-            const ascending = [...valid].reverse();
-            const timestamp = ascending.map(b => Math.floor(Date.parse(b.openTime) / 1000));
-            const open = ascending.map(b => Number(b.open));
-            const high = ascending.map(b => Number(b.high));
-            const low = ascending.map(b => Number(b.low));
-            const close = ascending.map(b => Number(b.close));
-            const volume = ascending.map(b => Number(b.tickVolume ?? b.volume ?? 0));
-            let regularMarketPrice = close[close.length - 1];
-            let regularMarketChangePercent = null;
-
-            try {
-              const tickRes = await fetch("https://biquote.io/api/XAUUSD?allowStale=false", {
-                headers: { "Accept": "application/json", "User-Agent": "Smart-Gold-V10-Pro/1.0" },
-                cf: { cacheTtl: 10, cacheEverything: true }
-              });
-              if (tickRes.ok) {
-                const tick = await tickRes.json();
-                if (Number.isFinite(Number(tick?.mid))) regularMarketPrice = Number(tick.mid);
-                if (Number.isFinite(Number(tick?.dayDiffPercent))) regularMarketChangePercent = Number(tick.dayDiffPercent);
-              }
-            } catch (_) {}
-
-            return Response.json({
-              chart: { result: [{
-                meta: { symbol: "XAUUSD", regularMarketPrice, regularMarketChangePercent, source: "Biquote / MT5 XAUUSD" },
-                timestamp,
-                indicators: { quote: [{ open, high, low, close, volume }] }
-              }], error: null }
-            }, { status: 200, headers: { "Cache-Control": "no-store", "Access-Control-Allow-Origin": "*" } });
-          }
-        }
-      } catch (_) {}
-
-      // Secondary fallback: Yahoo Finance.
-      const yahooInterval = safeInterval === "4h" ? "1h" : safeInterval;
-      const range = ["5m", "15m", "30m"].includes(yahooInterval) ? "1mo" : "6mo";
-      const upstreams = [
-        "https://query1.finance.yahoo.com/v8/finance/chart/XAUUSD=X",
-        "https://query2.finance.yahoo.com/v8/finance/chart/XAUUSD=X"
-      ];
-
-      for (const endpoint of upstreams) {
-        const upstream = new URL(endpoint);
-        upstream.searchParams.set("interval", yahooInterval);
-        upstream.searchParams.set("range", range);
-        upstream.searchParams.set("includePrePost", "false");
-        upstream.searchParams.set("events", "history");
-        upstream.searchParams.set("lang", "en-US");
-        upstream.searchParams.set("region", "US");
-        try {
-          const response = await fetch(upstream.toString(), {
-            headers: {
-              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/140 Safari/537.36",
-              "Accept": "application/json,text/plain,*/*"
-            }
-          });
-          if (response.ok) {
-            const body = await response.text();
-            return new Response(body, { status: 200, headers: {
-              "Content-Type": "application/json; charset=utf-8",
-              "Cache-Control": "no-store, no-cache, must-revalidate",
-              "Access-Control-Allow-Origin": "*"
-            }});
-          }
-        } catch (_) {}
-      }
-
-      return Response.json(
-        { error: "upstream_unavailable", message: "Le flux XAU/USD est temporairement indisponible. Le moteur reste verrouillé." },
-        { status: 502, headers: { "Access-Control-Allow-Origin": "*", "Cache-Control": "no-store" } }
-      );
-    }
-
-    if (url.pathname === "/smart-gold-v10-pro-macd" || url.pathname === "/smart-gold-v10-pro-macd/") {
-      const assetUrl = new URL(request.url);
-      assetUrl.pathname = "/smart-gold-v10-pro-macd.html";
-      return env.ASSETS.fetch(new Request(assetUrl, request));
-    }
-
-    return env.ASSETS.fetch(request);
-  }
-};
+const CORS={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Methods":"GET,OPTIONS","Access-Control-Allow-Headers":"Content-Type","Cache-Control":"no-store"};
+function json(data,status=200){return new Response(JSON.stringify(data),{status,headers:{...CORS,"Content-Type":"application/json; charset=utf-8"}})}
+function chartEnvelope(bars,meta={}){const a=[...bars].filter(b=>b&&Number.isFinite(+b.open)&&Number.isFinite(+b.high)&&Number.isFinite(+b.low)&&Number.isFinite(+b.close)&&b.openTime).sort((x,y)=>Date.parse(x.openTime)-Date.parse(y.openTime));return {chart:{result:[{meta:{symbol:"XAUUSD",...meta},timestamp:a.map(b=>Math.floor(Date.parse(b.openTime)/1000)),indicators:{quote:[{open:a.map(b=>+b.open),high:a.map(b=>+b.high),low:a.map(b=>+b.low),close:a.map(b=>+b.close),volume:a.map(b=>+(b.tickVolume??b.volume??0))}]}}],error:null}}
+export default {async fetch(request,env){const url=new URL(request.url);if(request.method==='OPTIONS')return new Response(null,{status:204,headers:CORS});
+if(url.pathname==='/api/xauusd'){
+ const interval=['5m','15m','30m','1h','4h'].includes(url.searchParams.get('interval'))?url.searchParams.get('interval'):'15m';
+ const fresh=url.searchParams.get('fresh')||Date.now();
+ try{const u=new URL(`https://biquote.io/api/XAUUSD/ohlc`);u.searchParams.set('interval',interval);u.searchParams.set('limit','1000');u.searchParams.set('fresh',fresh);const r=await fetch(u,{headers:{Accept:'application/json'},cf:{cacheTtl:5,cacheEverything:false}});if(r.ok){const d=await r.json();const bars=Array.isArray(d?.bars)?d.bars:[];if(bars.length>=40){let price=null,change=null;try{const t=await fetch(`https://biquote.io/api/XAUUSD?fresh=${fresh}`,{headers:{Accept:'application/json'},cf:{cacheTtl:5,cacheEverything:false}});if(t.ok){const q=await t.json();price=Number.isFinite(+q.mid)?+q.mid:null;change=Number.isFinite(+q.dayDiffPercent)?+q.dayDiffPercent:null}}catch(e){}return json(chartEnvelope(bars,{regularMarketPrice:price??+bars[0].close,regularMarketChangePercent:change,source:'Biquote MT5 XAUUSD'}))}}}catch(e){}
+ const yahooInterval=interval==='4h'?'1h':interval;const range=['5m','15m','30m'].includes(yahooInterval)?'1mo':'6mo';for(const host of ['query1.finance.yahoo.com','query2.finance.yahoo.com']){try{const u=new URL(`https://${host}/v8/finance/chart/XAUUSD=X`);u.searchParams.set('interval',yahooInterval);u.searchParams.set('range',range);u.searchParams.set('includePrePost','false');u.searchParams.set('events','history');const r=await fetch(u,{headers:{Accept:'application/json'}});if(r.ok){const text=await r.text();return new Response(text,{status:200,headers:{...CORS,"Content-Type":"application/json; charset=utf-8"}})}}catch(e){}}
+ return json({error:'upstream_unavailable',message:'Flux XAU/USD indisponible. Moteur verrouillé sur ATTENDRE.'},502)}
+if(url.pathname==='/smart-gold-v10-pro-macd'||url.pathname==='/smart-gold-v10-pro-macd/')return env.ASSETS.fetch(new Request(new URL('/smart-gold-v10-pro-macd.html',request.url),request));
+return env.ASSETS.fetch(request)}};
