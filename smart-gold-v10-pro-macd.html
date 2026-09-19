@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#060a10" />
-    <title>Smart Gold V10 Pro MACD</title>
+    <title>Smart Gold V10.1 Pro Multi-Stratégies</title>
     <style>
       :root {
         --bg: #05080d;
@@ -112,6 +112,22 @@
         display: grid;
         grid-template-columns: 1.05fr 1.05fr 1.05fr 0.95fr;
         gap: 9px;
+      }
+      .strategyStrip {
+        display: grid;
+        grid-template-columns: 1.35fr 1fr 1fr 1.35fr;
+        gap: 9px;
+      }
+      .strategyItem {
+        background: #080e17;
+        border: 1px solid #223047;
+        border-radius: 12px;
+        padding: 11px 12px;
+      }
+      .strategyItem b {
+        display: block;
+        margin-top: 5px;
+        font-size: 15px;
       }
       .metricCard {
         background: #080e17;
@@ -297,6 +313,9 @@
         .dashboard {
           grid-template-columns: 1fr 1fr;
         }
+        .strategyStrip {
+          grid-template-columns: 1fr 1fr;
+        }
         .mainGrid {
           grid-template-columns: 1fr;
         }
@@ -345,7 +364,7 @@
         <div class="brand">
           <div class="logo">Au</div>
           <div>
-            <div class="title">Smart Gold V10 Pro 👑</div>
+            <div class="title">Smart Gold V10.1 Pro 👑</div>
             <div class="sub">XAU/USD · ANALYSE & ENTRÉES · Maxime Masson</div>
             <div class="small">
               DISCIPLINE · ANALYSE · PROTECTION DU CAPITAL
@@ -389,6 +408,24 @@
           <div class="muted">DÉCISION TECHNIQUE</div>
           <div id="decision" class="big gold">ATTENDRE</div>
           <div id="decisionText" class="small">Chargement sécurisé…</div>
+        </div>
+      </section>
+      <section class="card strategyStrip" aria-label="Contexte de stratégie">
+        <div class="strategyItem">
+          <div class="muted">STRATÉGIE SÉLECTIONNÉE</div>
+          <b id="strategyName">Analyse en cours…</b>
+        </div>
+        <div class="strategyItem">
+          <div class="muted">RÉGIME DU MARCHÉ</div>
+          <b id="regime">—</b>
+        </div>
+        <div class="strategyItem">
+          <div class="muted">FORCE ADX (14)</div>
+          <b id="adxValue">—</b>
+        </div>
+        <div class="strategyItem">
+          <div class="muted">ALIGNEMENT MULTI-TF</div>
+          <b id="mtfDetail">4H — · 1H — · TF —</b>
         </div>
       </section>
       <section class="card">
@@ -580,7 +617,7 @@
         </div>
       </section>
       <footer class="footer">
-        <span>Smart Gold V10 Pro · créé pour Maxime Masson</span
+        <span>Smart Gold V10.1 Pro · créé pour Maxime Masson</span
         ><span class="green">● Signal sécurisé</span>
       </footer>
     </main>
@@ -595,6 +632,8 @@
       let tf = 15,
         mode = "day",
         rows = [],
+        rowsH1 = [],
+        rowsH4 = [],
         lastPrice = null,
         backtestRows = null,
         backtestPromise = null;
@@ -700,6 +739,274 @@
           );
         return { m, sig, hist };
       }
+      function adx(r, p = 14) {
+        const out = Array(r.length).fill(null),
+          tr = Array(r.length).fill(0),
+          plus = Array(r.length).fill(0),
+          minus = Array(r.length).fill(0),
+          dx = Array(r.length).fill(null);
+        let trSm = 0,
+          plusSm = 0,
+          minusSm = 0;
+        for (let i = 1; i < r.length; i++) {
+          const up = r[i].h - r[i - 1].h,
+            down = r[i - 1].l - r[i].l;
+          tr[i] = Math.max(
+            r[i].h - r[i].l,
+            Math.abs(r[i].h - r[i - 1].c),
+            Math.abs(r[i].l - r[i - 1].c),
+          );
+          plus[i] = up > down && up > 0 ? up : 0;
+          minus[i] = down > up && down > 0 ? down : 0;
+          if (i <= p) {
+            trSm += tr[i];
+            plusSm += plus[i];
+            minusSm += minus[i];
+          } else {
+            trSm = trSm - trSm / p + tr[i];
+            plusSm = plusSm - plusSm / p + plus[i];
+            minusSm = minusSm - minusSm / p + minus[i];
+          }
+          if (i >= p && trSm > 0) {
+            const pdi = (100 * plusSm) / trSm,
+              mdi = (100 * minusSm) / trSm;
+            dx[i] = pdi + mdi ? (100 * Math.abs(pdi - mdi)) / (pdi + mdi) : 0;
+          }
+          if (i >= p * 2 - 1) {
+            const recent = dx.slice(i - p + 1, i + 1).filter(Number.isFinite);
+            out[i] = recent.reduce((a, b) => a + b, 0) / recent.length;
+          }
+        }
+        return out;
+      }
+      function buildPack(r) {
+        const c = r.map((x) => x.c);
+        return {
+          c,
+          e20: ema(c, 20),
+          e50: ema(c, 50),
+          e200: ema(c, 200),
+          s50: sma(c, 50),
+          R: rsi(c),
+          A: atr(r),
+          M: macd(c),
+          D: adx(r),
+        };
+      }
+      function trendAt(pack, i) {
+        const p = pack.c[i];
+        if (
+          pack.e20[i] > pack.e50[i] &&
+          pack.e50[i] > pack.e200[i] &&
+          p > pack.e20[i]
+        )
+          return "bull";
+        if (
+          pack.e20[i] < pack.e50[i] &&
+          pack.e50[i] < pack.e200[i] &&
+          p < pack.e20[i]
+        )
+          return "bear";
+        return "neutral";
+      }
+      function latestTrend(r) {
+        if (r.length < 220) return "neutral";
+        const pack = buildPack(r);
+        return trendAt(pack, r.length - 1);
+      }
+      function trendLabel(t) {
+        return t === "bull" ? "HAUSSIER" : t === "bear" ? "BAISSIER" : "NEUTRE";
+      }
+      function breakoutRetest(r, i, pack) {
+        if (i < 30 || !pack.A[i]) return null;
+        const cur = r[i],
+          tolerance = pack.A[i] * 0.3;
+        for (let k = i - 1; k >= Math.max(21, i - 6); k--) {
+          const prior = r.slice(k - 20, k),
+            high = Math.max(...prior.map((x) => x.h)),
+            low = Math.min(...prior.map((x) => x.l)),
+            body = Math.abs(r[k].c - r[k].o),
+            strong = body >= (pack.A[k] || pack.A[i]) * 0.65;
+          if (
+            strong &&
+            r[k].c > high &&
+            cur.l <= high + tolerance &&
+            cur.c >= high
+          )
+            return { side: "BUY", level: high };
+          if (
+            strong &&
+            r[k].c < low &&
+            cur.h >= low - tolerance &&
+            cur.c <= low
+          )
+            return { side: "SELL", level: low };
+        }
+        return null;
+      }
+      function evaluateAt(r, i, pack, context = {}) {
+        if (i < 220 || !pack.A[i] || !pack.D[i]) return null;
+        const p = pack.c[i],
+          cur = r[i],
+          look = Math.min(120, i),
+          win = r.slice(i - look, i + 1),
+          hi = Math.max(...win.map((x) => x.h)),
+          lo = Math.min(...win.map((x) => x.l)),
+          range = hi - lo || 1,
+          f236 = hi - range * 0.236,
+          f382 = hi - range * 0.382,
+          f50 = hi - range * 0.5,
+          f618 = hi - range * 0.618,
+          currentTrend = trendAt(pack, i),
+          h1Trend = context.h1Trend || currentTrend,
+          h4Trend = context.h4Trend || currentTrend,
+          macdBull = pack.M.m[i] > pack.M.sig[i] && pack.M.hist[i] > 0,
+          macdBear = pack.M.m[i] < pack.M.sig[i] && pack.M.hist[i] < 0,
+          body = Math.abs(cur.c - cur.o),
+          bullReject =
+            cur.c > cur.o && cur.c - cur.l >= Math.max(body * 1.2, pack.A[i] * 0.25),
+          bearReject =
+            cur.c < cur.o && cur.h - cur.c >= Math.max(body * 1.2, pack.A[i] * 0.25),
+          structureBull = cur.c > r[i - 3].c && cur.l >= r[i - 2].l,
+          structureBear = cur.c < r[i - 3].c && cur.h <= r[i - 2].h,
+          buyLow = Math.min(f618, f50, pack.e20[i]),
+          buyHigh = Math.max(f618, f50, pack.e20[i]),
+          sellLow = Math.min(f382, f236, pack.e50[i]),
+          sellHigh = Math.max(f382, f236, pack.e50[i]),
+          inBuy = p >= buyLow && p <= buyHigh,
+          inSell = p >= sellLow && p <= sellHigh,
+          risk = Math.min(5, Math.max(0.5, pack.A[i] * 0.8)),
+          rrBuy = Math.max(0, hi - p) / risk,
+          rrSell = Math.max(0, p - lo) / risk,
+          adxNow = pack.D[i],
+          breakout = breakoutRetest(r, i, pack),
+          mtfBull = h1Trend === "bull" && h4Trend === "bull",
+          mtfBear = h1Trend === "bear" && h4Trend === "bear";
+        let regime =
+          breakout && adxNow >= 20
+            ? "BREAKOUT"
+            : adxNow >= 25 && currentTrend !== "neutral"
+              ? "TENDANCE"
+              : adxNow < 20
+                ? "RANGE"
+                : "TRANSITION";
+        const candidates = [];
+        for (const side of ["BUY", "SELL"]) {
+          const isBuy = side === "BUY",
+            aligned = isBuy ? mtfBull : mtfBear,
+            trendOk = isBuy ? currentTrend === "bull" : currentTrend === "bear",
+            structure = isBuy ? structureBull : structureBear,
+            macdOk = isBuy ? macdBull : macdBear,
+            rsiOk = isBuy
+              ? pack.R[i] >= 50 && pack.R[i] <= 72
+              : pack.R[i] <= 50 && pack.R[i] >= 28,
+            inZone = isBuy ? inBuy : inSell,
+            reject = isBuy ? bullReject : bearReject,
+            rr = isBuy ? rrBuy : rrSell;
+          const pullbackScore =
+            (aligned ? 20 : 0) +
+            (trendOk ? 15 : 0) +
+            (structure ? 10 : 0) +
+            (macdOk ? 10 : 0) +
+            (rsiOk ? 5 : 0) +
+            (inZone ? 15 : 0) +
+            (reject ? 10 : 0) +
+            (adxNow >= 25 ? 5 : 0) +
+            (rr >= 3 ? 10 : 0);
+          candidates.push({
+            strategy: "PULLBACK TENDANCE",
+            side,
+            score: pullbackScore,
+            regimeMatch: regime === "TENDANCE",
+            valid:
+              regime === "TENDANCE" &&
+              aligned &&
+              trendOk &&
+              macdOk &&
+              inZone &&
+              reject &&
+              rr >= 3 &&
+              pullbackScore >= 75,
+          });
+          const breakOk = breakout?.side === side;
+          const breakoutScore =
+            (breakOk ? 30 : 0) +
+            (aligned ? 15 : 0) +
+            (structure ? 10 : 0) +
+            (macdOk ? 10 : 0) +
+            (reject ? 10 : 0) +
+            (adxNow >= 20 ? 10 : 0) +
+            (rr >= 3 ? 15 : 0);
+          candidates.push({
+            strategy: "BREAKOUT + RETEST",
+            side,
+            score: breakoutScore,
+            regimeMatch: regime === "BREAKOUT",
+            valid:
+              regime === "BREAKOUT" &&
+              breakOk &&
+              aligned &&
+              macdOk &&
+              reject &&
+              rr >= 3 &&
+              breakoutScore >= 75,
+          });
+          const edge = isBuy
+            ? (p - lo) / range <= 0.18
+            : (hi - p) / range <= 0.18;
+          const rangeRsi = isBuy ? pack.R[i] <= 45 : pack.R[i] >= 55;
+          const rangeScore =
+            (regime === "RANGE" ? 20 : 0) +
+            (edge ? 20 : 0) +
+            (reject ? 20 : 0) +
+            (rangeRsi ? 15 : 0) +
+            (structure ? 10 : 0) +
+            (rr >= 3 ? 15 : 0);
+          candidates.push({
+            strategy: "REJET DE RANGE",
+            side,
+            score: rangeScore,
+            regimeMatch: regime === "RANGE",
+            valid:
+              regime === "RANGE" &&
+              !mtfBull &&
+              !mtfBear &&
+              edge &&
+              reject &&
+              rangeRsi &&
+              rr >= 3 &&
+              rangeScore >= 75,
+          });
+        }
+        candidates.sort(
+          (a, b) =>
+            Number(b.valid) - Number(a.valid) ||
+            Number(b.regimeMatch) - Number(a.regimeMatch) ||
+            b.score - a.score,
+        );
+        const best = candidates[0];
+        return {
+          ...best,
+          regime,
+          adx: adxNow,
+          currentTrend,
+          h1Trend,
+          h4Trend,
+          risk,
+          rr: best.side === "BUY" ? rrBuy : rrSell,
+          space: best.side === "BUY" ? Math.max(0, hi - p) : Math.max(0, p - lo),
+          mtfAligned:
+            best.strategy === "REJET DE RANGE"
+              ? !mtfBull && !mtfBear
+              : best.side === "BUY"
+                ? mtfBull
+                : mtfBear,
+          strategyMatch: best.regimeMatch,
+          breakout,
+          levels: { hi, lo, f236, f382, f50, f618, buyLow, buyHigh, sellLow, sellHigh },
+          flags: { structureBull, structureBear, macdBull, macdBear, bullReject, bearReject, inBuy, inSell },
+        };
+      }
       function normalize(d) {
         const q = d?.chart?.result?.[0];
         if (!q) return [];
@@ -735,10 +1042,13 @@
           seen = new Set();
         const maxPages = Math.ceil(target / 5000);
         for (let page = 0; page < maxPages && all.length < target; page++) {
+          const requestCount = Math.min(5000, target - all.length);
           let u =
             "/api/xauusd?interval=" +
             interval +
-            "&count=5000&fresh=" +
+            "&count=" +
+            requestCount +
+            "&fresh=" +
             Date.now();
           if (to) u += "&to=" + encodeURIComponent(to);
           const d = await fetch(u, { cache: "no-store" });
@@ -760,7 +1070,11 @@
         $("dataState").textContent = "Connexion au flux Gold…";
         $("dataState").className = "status";
         try {
-          let a = await fetchHistory(TF[tf][1], 5000);
+          const [a, h1, h4] = await Promise.all([
+            fetchHistory(TF[tf][1], 5000),
+            fetchHistory("1h", 400),
+            fetchHistory("4h", 400),
+          ]);
           if (a.length < 80) throw Error("historique insuffisant");
           const lp = a[a.length - 1]?.c;
           if (!Number.isFinite(lp) || lp <= 100 || lp >= 10000)
@@ -778,6 +1092,8 @@
           )
             throw Error("bougies OANDA invalides");
           rows = a;
+          rowsH1 = h1;
+          rowsH4 = h4;
           lastPrice = lp;
           analyze();
           $("dataState").className = "status good";
@@ -870,49 +1186,24 @@
           spaceSell = Math.max(0, p - lo),
           rrBuy = spaceBuy / risk,
           rrSell = spaceSell / risk;
-        let buyScore =
-            (bullish ? 20 : 0) +
-            (structureBull ? 15 : 0) +
-            (macdBull ? 15 : 0) +
-            (rsiBull ? 10 : 0) +
-            (inBuy ? 15 : 0) +
-            (bullReject ? 10 : 0) +
-            (rrBuy >= 3 ? 10 : 0) +
-            (p > s50[i] ? 5 : 0),
-          sellScore =
-            (bearish ? 20 : 0) +
-            (structureBear ? 15 : 0) +
-            (macdBear ? 15 : 0) +
-            (rsiBear ? 10 : 0) +
-            (inSell ? 15 : 0) +
-            (bearReject ? 10 : 0) +
-            (rrSell >= 3 ? 10 : 0) +
-            (p < s50[i] ? 5 : 0);
-        const side = buyScore >= sellScore ? "BUY" : "SELL",
-          score = Math.max(buyScore, sellScore),
-          valid =
-            score >= 75 &&
-            (side === "BUY"
-              ? bullish &&
-                macdBull &&
-                rsiBull &&
-                inBuy &&
-                bullReject &&
-                rrBuy >= 3
-              : bearish &&
-                macdBear &&
-                rsiBear &&
-                inSell &&
-                bearReject &&
-                rrSell >= 3);
+        const h1Trend = latestTrend(rowsH1),
+          h4Trend = latestTrend(rowsH4),
+          pack = buildPack(r),
+          signal = evaluateAt(r, i, pack, { h1Trend, h4Trend }),
+          side = signal.side,
+          score = signal.score,
+          valid = signal.valid,
+          globalTrend = h1Trend === h4Trend ? h1Trend : "neutral";
         $("price").textContent = fmt(p);
-        $("trend").textContent = bullish
-          ? "HAUSSIÈRE"
-          : bearish
-            ? "BAISSIÈRE"
-            : "NEUTRE";
+        $("trend").textContent =
+          globalTrend === "bull"
+            ? "HAUSSIÈRE"
+            : globalTrend === "bear"
+              ? "BAISSIÈRE"
+              : "MIXTE";
         $("trend").className =
-          "big " + (bullish ? "green" : bearish ? "red" : "gold");
+          "big " +
+          (globalTrend === "bull" ? "green" : globalTrend === "bear" ? "red" : "gold");
         $("score").textContent = score + " / 100";
         $("scoreBar").style.width = score + "%";
         $("macdValue").textContent = fmt(M.m[i]);
@@ -937,10 +1228,13 @@
         $("volatility").textContent =
           A[i] >= 3 ? "Élevée" : A[i] >= 1.5 ? "Modérée" : "Faible";
         $("mtf").textContent =
-          "4H / 1H / " +
-          TF[tf][0] +
-          " · " +
-          (bullish ? "haussier" : bearish ? "baissier" : "mixte");
+          `4H ${trendLabel(h4Trend)} · 1H ${trendLabel(h1Trend)} · ${TF[tf][0]} ${trendLabel(signal.currentTrend)}`;
+        $("strategyName").textContent = signal.strategy;
+        $("strategyName").className = valid ? (side === "BUY" ? "green" : "red") : "gold";
+        $("regime").textContent = signal.regime;
+        $("adxValue").textContent = fmt(signal.adx);
+        $("mtfDetail").textContent =
+          `4H ${trendLabel(h4Trend)} · 1H ${trendLabel(h1Trend)} · ${TF[tf][0]} ${trendLabel(signal.currentTrend)}`;
         $("buyZone").textContent = fmt(buyLow) + " – " + fmt(buyHigh);
         $("sellZone").textContent = fmt(sellLow) + " – " + fmt(sellHigh);
         $("fib").textContent =
@@ -983,14 +1277,17 @@
           ? "Zone active · chercher rejet baissier."
           : "Attendre retour + confirmation.";
         const checks = [
-          ["Tendance", side === "BUY" ? bullish : bearish],
+          ["Alignement 4H + 1H", signal.mtfAligned],
+          ["Régime adapté", signal.strategyMatch],
+          ["Tendance du TF", side === "BUY" ? bullish : bearish],
           ["Structure", side === "BUY" ? structureBull : structureBear],
           ["MACD", side === "BUY" ? macdBull : macdBear],
           ["RSI", side === "BUY" ? rsiBull : rsiBear],
           ["Zone", side === "BUY" ? inBuy : inSell],
           ["Réaction", side === "BUY" ? bullReject : bearReject],
           ["Espace ≥3R", side === "BUY" ? rrBuy >= 3 : rrSell >= 3],
-          ["Données fraîches", true],
+          ["ADX / force", signal.adx >= (signal.regime === "RANGE" ? 0 : 20)],
+          ["Données clôturées", true],
         ];
         $("checks").innerHTML = checks
           .map(
@@ -1004,9 +1301,9 @@
           $("decision").className = "big " + (side === "BUY" ? "green" : "red");
           $("decision").textContent = side;
           $("decisionText").textContent =
-            "Setup validé : attendre la clôture de confirmation avant l’entrée.";
+            `${signal.strategy} validé sur bougie clôturée.`;
           $("planText").textContent =
-            `Signal ${side} validé sous les règles du moteur. Entry ${fmt(entry)} · SL ${fmt(sl)} · R:R ${fmt(space / risk)}.`;
+            `${signal.strategy} · Signal ${side} validé. Entry ${fmt(entry)} · SL ${fmt(sl)} · R:R ${fmt(space / risk)}.`;
         } else {
           setWait(
             "Pas assez de confluence pour forcer une entrée. Attendre zone + confirmation.",
@@ -1014,10 +1311,10 @@
             true,
           );
           $("planText").textContent =
-            `Signal ${side} détecté mais NON VALIDÉ. Score ${score}/100 · minimum 75 + conditions critiques.`;
+            `${signal.strategy} détecté mais NON VALIDÉ. Score ${score}/100 · vérifier régime, multi-TF et confirmations.`;
         }
         $("marketText").innerHTML =
-          `<b>Contexte ${TF[tf][0]} :</b> prix ${fmt(p)} · EMA20 ${fmt(e20[i])} · EMA50 ${fmt(e50[i])} · EMA200 ${fmt(e200[i])} · RSI14 ${fmt(R[i])} · ATR14 ${fmt(A[i])}.<br><br><b>Lecture :</b> ${bullish ? "biais haussier" : bearish ? "biais baissier" : "marché mixte"}. MACD ${macdBull ? "haussier" : macdBear ? "baissier" : "neutre"}. Les zones combinent Fibonacci, EMA et structure récente. <b>Aucune entrée automatique sans confirmation.</b><br><br><span class="proxy">✓ Données moteur : OANDA XAU/USD.</span>`;
+          `<b>Régime :</b> ${signal.regime} · stratégie sélectionnée ${signal.strategy}.<br><br><b>Multi-timeframe :</b> 4H ${trendLabel(h4Trend).toLowerCase()} · 1H ${trendLabel(h1Trend).toLowerCase()} · ${TF[tf][0]} ${trendLabel(signal.currentTrend).toLowerCase()}.<br><br><b>Contexte ${TF[tf][0]} :</b> prix ${fmt(p)} · EMA20 ${fmt(e20[i])} · EMA50 ${fmt(e50[i])} · EMA200 ${fmt(e200[i])} · RSI14 ${fmt(R[i])} · ATR14 ${fmt(A[i])} · ADX14 ${fmt(signal.adx)}.<br><br><b>Lecture :</b> MACD ${macdBull ? "haussier" : macdBear ? "baissier" : "neutre"}. <b>Aucune entrée sans régime adapté, alignement et confirmation clôturée.</b><br><br><span class="proxy">✓ Données moteur : OANDA XAU/USD.</span>`;
         draw(r);
         runBacktest();
       }
@@ -1058,85 +1355,27 @@
           grossLoss = 0,
           signals = 0,
           ambiguous = 0;
-        const c = r.map((x) => x.c),
-          e20 = ema(c, 20),
-          e50 = ema(c, 50),
-          e200 = ema(c, 200),
-          s50 = sma(c, 50),
-          R = rsi(c),
-          M = macd(c),
-          A = atr(r);
+        const pack = buildPack(r),
+          h4 = aggregate4h(r),
+          h4Pack = buildPack(h4),
+          strategyStats = new Map();
+        let h4i = 0;
         for (let i = 220; i < r.length - 1; i++) {
-          if (!e20[i] || !e50[i] || !e200[i] || !s50[i] || !A[i]) continue;
-          const p = c[i],
-            look = Math.min(120, i),
-            win = r.slice(i - look, i + 1),
-            hi = Math.max(...win.map((x) => x.h)),
-            lo = Math.min(...win.map((x) => x.l)),
-            range = hi - lo || 1,
-            f236 = hi - range * 0.236,
-            f382 = hi - range * 0.382,
-            f50 = hi - range * 0.5,
-            f618 = hi - range * 0.618,
-            bull = e20[i] > e50[i] && e50[i] > e200[i] && p > e20[i],
-            bear = e20[i] < e50[i] && e50[i] < e200[i] && p < e20[i],
-            mb = M.m[i] > M.sig[i] && M.hist[i] > 0,
-            ms = M.m[i] < M.sig[i] && M.hist[i] < 0,
-            rb = R[i] >= 52 && R[i] <= 72,
-            rs = R[i] <= 48 && R[i] >= 28,
-            cur = r[i],
-            body = Math.abs(cur.c - cur.o),
-            br =
-              cur.c > cur.o &&
-              cur.c - cur.l >= Math.max(body * 1.2, A[i] * 0.25),
-            sr =
-              cur.c < cur.o &&
-              cur.h - cur.c >= Math.max(body * 1.2, A[i] * 0.25),
-            buyLow = Math.min(f618, f50, e20[i]),
-            buyHigh = Math.max(f618, f50, e20[i]),
-            sellLow = Math.min(f382, f236, e50[i]),
-            sellHigh = Math.max(f382, f236, e50[i]),
-            ib = p >= buyLow && p <= buyHigh,
-            is = p >= sellLow && p <= sellHigh,
-            sb =
-              cur.c > r[Math.max(0, i - 3)].c &&
-              cur.l >= r[Math.max(0, i - 2)].l,
-            ss =
-              cur.c < r[Math.max(0, i - 3)].c &&
-              cur.h <= r[Math.max(0, i - 2)].h,
-            risk = Math.min(5, Math.max(0.5, A[i] * 0.8)),
-            rrb = Math.max(0, hi - p) / risk,
-            rrs = Math.max(0, p - lo) / risk,
-            bscore =
-              (bull ? 20 : 0) +
-              (sb ? 15 : 0) +
-              (mb ? 15 : 0) +
-              (rb ? 10 : 0) +
-              (ib ? 15 : 0) +
-              (br ? 10 : 0) +
-              (rrb >= 3 ? 10 : 0) +
-              (p > s50[i] ? 5 : 0),
-            sscore =
-              (bear ? 20 : 0) +
-              (ss ? 15 : 0) +
-              (ms ? 15 : 0) +
-              (rs ? 10 : 0) +
-              (is ? 15 : 0) +
-              (sr ? 10 : 0) +
-              (rrs >= 3 ? 10 : 0) +
-              (p < s50[i] ? 5 : 0),
-            side = bscore >= sscore ? 1 : -1,
-            score = Math.max(bscore, sscore),
-            valid =
-              score >= 75 &&
-              (side === 1
-                ? bull && mb && rb && ib && br && rrb >= 3
-                : bear && ms && rs && is && sr && rrs >= 3);
-          if (!valid) continue;
+          while (
+            h4i + 1 < h4.length &&
+            h4[h4i + 1].t + 14400000 <= r[i].t
+          )
+            h4i++;
+          if (h4i < 220 || h4[h4i].t + 14400000 > r[i].t) continue;
+          const h1Trend = trendAt(pack, i),
+            h4Trend = trendAt(h4Pack, h4i),
+            signal = evaluateAt(r, i, pack, { h1Trend, h4Trend });
+          if (!signal?.valid) continue;
           signals++;
-          const entry = p,
-            sl = entry - side * risk,
-            tp = entry + side * risk * 3;
+          const side = signal.side === "BUY" ? 1 : -1,
+            entry = pack.c[i],
+            sl = entry - side * signal.risk,
+            tp = entry + side * signal.risk * 3;
           let out = 0,
             exitIndex = i;
           for (let j = i + 1; j < r.length; j++) {
@@ -1170,6 +1409,10 @@
           } else continue;
           peak = Math.max(peak, pnl);
           dd = Math.max(dd, peak - pnl);
+          const stat = strategyStats.get(signal.strategy) || { wins: 0, losses: 0 };
+          if (out === 3) stat.wins++;
+          else stat.losses++;
+          strategyStats.set(signal.strategy, stat);
           i = exitIndex;
         }
         const n = wins + losses,
@@ -1190,8 +1433,14 @@
             ? "∞"
             : "—";
         $("dd").textContent = n ? dd.toFixed(1) + "R" : "—";
+        const strategySummary = [...strategyStats.entries()]
+          .map(([name, s]) => {
+            const total = s.wins + s.losses;
+            return `${name}: ${total} trades · ${((s.wins / total) * 100).toFixed(1)}%`;
+          })
+          .join(" · ");
           $("btStatus").textContent = n
-            ? `Moteur identique · H1 sur ${(days / 365.25).toFixed(2)} ans · ${n} trades clôturés / ${signals} signaux · ${wins} gagnants · ${losses} perdants · ${pnl.toFixed(1)}R net · ${ambiguous} ambiguë(s) = perte.`
+            ? `V10.1 multi-stratégies · H1/4H sur ${(days / 365.25).toFixed(2)} ans · ${n} trades · ${wins} gagnants · ${losses} perdants · ${pnl.toFixed(1)}R net · ${ambiguous} ambiguë(s) = perte. ${strategySummary}`
           : "Aucun signal complet clôturé sur les bougies disponibles.";
         $("btQuality").textContent =
           `Qualité statistique : ${quality} · ${n} trade(s). Objectif : ≥100 trades avant de considérer le résultat robuste.`;
