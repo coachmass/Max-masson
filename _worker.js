@@ -2,12 +2,12 @@ const CORS={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Methods":"GE
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{...CORS,"Content-Type":"application/json;charset=utf-8"}});
 const GRANULARITY={"5m":"M5","15m":"M15","30m":"M30","1h":"H1","4h":"H4"};
 
-async function oanda(env,interval){
+async function oanda(env,interval,count=5000){
   if(!env.OANDA_API_TOKEN) throw new Error("OANDA_API_TOKEN missing");
   const u=new URL("https://api-fxtrade.oanda.com/v3/instruments/XAU_USD/candles");
   u.searchParams.set("price","M");
   u.searchParams.set("granularity",GRANULARITY[interval]||"M15");
-  u.searchParams.set("count","5000");
+  u.searchParams.set("count",String(Math.min(5000,Math.max(80,Number(count)||5000))));
   const r=await fetch(u,{headers:{Authorization:`Bearer ${env.OANDA_API_TOKEN}`,Accept:"application/json"}});
   if(!r.ok) throw new Error("OANDA "+r.status+" "+(await r.text()).slice(0,180));
   const d=await r.json(), candles=(d.candles||[]).filter(x=>x?.mid);
@@ -24,7 +24,8 @@ export default {async fetch(request,env){
   if(request.method==="OPTIONS")return new Response(null,{status:204,headers:CORS});
   if(url.pathname==="/api/xauusd"){
     const interval=["5m","15m","30m","1h","4h"].includes(url.searchParams.get("interval"))?url.searchParams.get("interval"):"15m";
-    try{return json(await oanda(env,interval));}
+    const count=Math.min(5000,Math.max(80,Number(url.searchParams.get("count"))||5000));
+    try{return json(await oanda(env,interval,count));}
     catch(e){return json({error:"oanda_unavailable",message:String(e?.message||e),signalLocked:true},502);}
   }
   if(!env.ASSETS || typeof env.ASSETS.fetch!=="function") return json({error:"assets_binding_missing",message:"Cloudflare ASSETS binding unavailable"},503);
