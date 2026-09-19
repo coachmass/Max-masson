@@ -11,10 +11,13 @@ export default async (req: Request) => {
   const u = new URL(req.url);
   const interval = u.searchParams.get("interval") || "15m";
   const granularity = GRANULARITY[interval] || "M15";
+  const count = Math.min(5000, Math.max(80, Number(u.searchParams.get("count")) || 5000));
+  const to = u.searchParams.get("to");
   const endpoint = new URL("https://api-fxtrade.oanda.com/v3/instruments/XAU_USD/candles");
   endpoint.searchParams.set("price","M");
   endpoint.searchParams.set("granularity",granularity);
-  endpoint.searchParams.set("count","5000");
+  endpoint.searchParams.set("count",String(count));
+  if (to) endpoint.searchParams.set("to",to);
 
   const upstream = await fetch(endpoint, {
     headers: { Authorization: `Bearer ${token}` }
@@ -25,7 +28,7 @@ export default async (req: Request) => {
   }
 
   const data:any = await upstream.json();
-  const candles = (data.candles || []).filter((x:any)=>x?.mid);
+  const candles = (data.candles || []).filter((x:any)=>x?.mid && x.complete === true);
   const timestamp:number[] = [];
   const open:number[] = [], high:number[] = [], low:number[] = [], close:number[] = [], volume:number[] = [];
   for (const x of candles) {

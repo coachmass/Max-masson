@@ -11,7 +11,7 @@ async function oanda(env,interval,count=5000,to=null){
   if(to)u.searchParams.set("to",to);
   const r=await fetch(u,{headers:{Authorization:`Bearer ${env.OANDA_API_TOKEN}`,Accept:"application/json"}});
   if(!r.ok) throw new Error("OANDA "+r.status+" "+(await r.text()).slice(0,180));
-  const d=await r.json(), candles=(d.candles||[]).filter(x=>x?.mid);
+  const d=await r.json(), candles=(d.candles||[]).filter(x=>x?.mid&&x.complete===true);
   if(candles.length<40) throw new Error("Not enough OANDA candles");
   const timestamp=[],open=[],high=[],low=[],close=[],volume=[];
   for(const x of candles){

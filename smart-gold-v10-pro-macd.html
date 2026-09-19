@@ -562,9 +562,10 @@
         <div class="note" style="margin-top: 9px">
           <b>Validation :</b> résultats calculés uniquement sur bougies
           clôturées reçues d’OANDA. Une bougie touchant SL et TP est comptée en
-          perte. Un petit échantillon n’est jamais présenté comme une stratégie
-          validée. Les performances passées ne garantissent pas les résultats
-          futurs.
+          perte. Le moteur ne simule qu’un seul trade à la fois pour éviter de
+          gonfler artificiellement les résultats. Un petit échantillon n’est
+          jamais présenté comme une stratégie validée. Les performances passées
+          ne garantissent pas les résultats futurs.
         </div>
       </section>
       <section class="card">
@@ -804,15 +805,21 @@
         $("decision").textContent = "ATTENDRE";
         $("decisionText").textContent = "Analyse sécurisée en cours…";
       }
-      function setWait(txt, feedOk = rows.length > 0) {
+      function setWait(
+        txt,
+        feedOk = rows.length > 0,
+        preserveAnalysis = false,
+      ) {
         $("decisionCard").className = "metricCard decision wait";
         $("decision").className = "big gold";
         $("decision").textContent = "ATTENDRE";
         $("decisionText").textContent = txt;
-        $("score").textContent = "— / 100";
-        $("scoreBar").style.width = "0%";
-        $("checks").innerHTML =
-          `<div class="check ${feedOk ? "ok" : "no"}">${feedOk ? "✓" : "✕"} Données reçues</div><div class="check no">✕ Signal non validé</div><div class="check no">✕ Aucun trade autorisé</div>`;
+        if (!preserveAnalysis) {
+          $("score").textContent = "— / 100";
+          $("scoreBar").style.width = "0%";
+          $("checks").innerHTML =
+            `<div class="check ${feedOk ? "ok" : "no"}">${feedOk ? "✓" : "✕"} Données reçues</div><div class="check no">✕ Signal non validé</div><div class="check no">✕ Aucun trade autorisé</div>`;
+        }
       }
       function analyze() {
         const r = rows,
@@ -1003,6 +1010,8 @@
         } else {
           setWait(
             "Pas assez de confluence pour forcer une entrée. Attendre zone + confirmation.",
+            true,
+            true,
           );
           $("planText").textContent =
             `Signal ${side} détecté mais NON VALIDÉ. Score ${score}/100 · minimum 75 + conditions critiques.`;
@@ -1128,21 +1137,25 @@
           const entry = p,
             sl = entry - side * risk,
             tp = entry + side * risk * 3;
-          let out = 0;
+          let out = 0,
+            exitIndex = i;
           for (let j = i + 1; j < r.length; j++) {
             const hitSL = side === 1 ? r[j].l <= sl : r[j].h >= sl,
               hitTP = side === 1 ? r[j].h >= tp : r[j].l <= tp;
             if (hitSL && hitTP) {
               out = -1;
+              exitIndex = j;
               ambiguous++;
               break;
             }
             if (hitSL) {
               out = -1;
+              exitIndex = j;
               break;
             }
             if (hitTP) {
               out = 3;
+              exitIndex = j;
               break;
             }
           }
@@ -1157,6 +1170,7 @@
           } else continue;
           peak = Math.max(peak, pnl);
           dd = Math.max(dd, peak - pnl);
+          i = exitIndex;
         }
         const n = wins + losses,
           days = r.length > 1 ? (r[r.length - 1].t - r[0].t) / 86400000 : 0,
