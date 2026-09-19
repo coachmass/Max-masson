@@ -408,6 +408,7 @@
         <div class="quote">
           Québec (EDT)<b id="clock">--:--:--</b
           ><span id="liveState" class="green">● Système prêt</span>
+          <div class="small">Actualisation automatique · 60 s</div>
         </div>
         <button id="refresh">↻ Actualiser</button>
       </header>
@@ -680,6 +681,8 @@
         rowsH4 = [],
         chartZones = null,
         feedFresh = false,
+        isLoading = false,
+        lastLoadAt = 0,
         lastPrice = null,
         backtestRows = null,
         backtestPromise = null;
@@ -1112,6 +1115,8 @@
         return all;
       }
       async function load() {
+        if (isLoading) return;
+        isLoading = true;
         setBusy();
         $("dataState").textContent = "Connexion au flux Gold…";
         $("dataState").className = "status";
@@ -1166,6 +1171,9 @@
           setWait("Données de marché indisponibles. Aucune entrée autorisée.");
           $("liveState").textContent = "● Flux indisponible";
           draw([]);
+        } finally {
+          isLoading = false;
+          lastLoadAt = Date.now();
         }
       }
       function setBusy() {
@@ -1655,6 +1663,16 @@
           hour12: false,
         });
       }, 1000);
+      setInterval(() => {
+        if (document.visibilityState === "visible") load();
+      }, 60000);
+      document.addEventListener("visibilitychange", () => {
+        if (
+          document.visibilityState === "visible" &&
+          Date.now() - lastLoadAt > 60000
+        )
+          load();
+      });
       $("clock").textContent = new Date().toLocaleTimeString("fr-CA", {
         hour12: false,
       });
