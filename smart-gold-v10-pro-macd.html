@@ -306,6 +306,34 @@
       .status.bad {
         border-color: #6b2e39;
       }
+      .executionGate {
+        display: grid;
+        grid-template-columns: 1.1fr 2fr auto;
+        align-items: center;
+        gap: 14px;
+        border-width: 2px;
+      }
+      .executionGate.locked {
+        border-color: #745925;
+        background: linear-gradient(100deg, #181407, #0d141e 48%);
+      }
+      .executionGate.ready {
+        border-color: #1c8a68;
+        background: linear-gradient(100deg, #071b15, #0d141e 48%);
+      }
+      .executionGate b {
+        display: block;
+        margin-top: 4px;
+        font-size: 18px;
+      }
+      .riskCap {
+        padding: 9px 12px;
+        border: 1px solid #33445d;
+        border-radius: 10px;
+        color: #dbe4ef;
+        font-weight: 800;
+        white-space: nowrap;
+      }
       .proxy {
         color: #f5c542;
       }
@@ -315,6 +343,12 @@
         }
         .strategyStrip {
           grid-template-columns: 1fr 1fr;
+        }
+        .executionGate {
+          grid-template-columns: 1fr;
+        }
+        .riskCap {
+          white-space: normal;
         }
         .mainGrid {
           grid-template-columns: 1fr;
@@ -409,6 +443,16 @@
           <div id="decision" class="big gold">ATTENDRE</div>
           <div id="decisionText" class="small">Chargement sécurisé…</div>
         </div>
+      </section>
+      <section id="executionGate" class="card executionGate locked">
+        <div>
+          <div class="muted">VERROU D’EXÉCUTION · ACCÈS PRIVÉ</div>
+          <b id="executionState" class="gold">ENTRÉE BLOQUÉE</b>
+        </div>
+        <div id="executionGuide" class="analysis">
+          Ne rien entrer tant que le moteur n’affiche pas un signal BUY ou SELL validé.
+        </div>
+        <div class="riskCap">Risque conseillé : 0,5–1 % max</div>
       </section>
       <section class="card strategyStrip" aria-label="Contexte de stratégie">
         <div class="strategyItem">
@@ -635,6 +679,7 @@
         rowsH1 = [],
         rowsH4 = [],
         chartZones = null,
+        feedFresh = false,
         lastPrice = null,
         backtestRows = null,
         backtestPromise = null;
@@ -1095,20 +1140,26 @@
           rows = a;
           rowsH1 = h1;
           rowsH4 = h4;
+          const candleAge = Date.now() - a[a.length - 1].t,
+            maxAge = Math.max(20 * 60000, tf * 60000 * 2.5);
+          feedFresh = candleAge <= maxAge;
           lastPrice = lp;
           analyze();
-          $("dataState").className = "status good";
-          $("dataState").textContent =
-            "✓ Flux Gold opérationnel · " +
-            a.length +
-            " bougies · source OANDA XAU/USD";
-          $("liveState").textContent = "● Données reçues";
+          $("dataState").className = feedFresh ? "status good" : "status bad";
+          $("dataState").textContent = feedFresh
+            ? `✓ Flux Gold opérationnel · ${a.length} bougies · source OANDA XAU/USD`
+            : "⚠ Dernière bougie trop ancienne · signaux verrouillés jusqu’à la reprise du marché";
+          $("liveState").textContent = feedFresh
+            ? "● Données à jour"
+            : "● Marché fermé / données anciennes";
+          $("liveState").className = feedFresh ? "green" : "red";
           $("fresh").textContent =
             "Dernière bougie · " +
             new Date(a[a.length - 1].t).toLocaleTimeString("fr-CA");
         } catch (e) {
           rows = [];
           chartZones = null;
+          feedFresh = false;
           $("dataState").className = "status bad";
           $("dataState").textContent =
             "Erreur flux marché · " + e.message + " · ATTENDRE";
@@ -1122,6 +1173,11 @@
         $("decision").className = "big gold";
         $("decision").textContent = "ATTENDRE";
         $("decisionText").textContent = "Analyse sécurisée en cours…";
+        $("executionGate").className = "card executionGate locked";
+        $("executionState").className = "gold";
+        $("executionState").textContent = "VÉRIFICATION EN COURS";
+        $("executionGuide").textContent =
+          "Le moteur contrôle les données, le régime et les confirmations.";
       }
       function setWait(
         txt,
@@ -1132,6 +1188,12 @@
         $("decision").className = "big gold";
         $("decision").textContent = "ATTENDRE";
         $("decisionText").textContent = txt;
+        $("executionGate").className = "card executionGate locked";
+        $("executionState").className = "gold";
+        $("executionState").textContent = "ENTRÉE BLOQUÉE";
+        $("executionGuide").textContent = feedFresh
+          ? "Signal incomplet : attendre la zone, la clôture et toutes les confirmations."
+          : "Données trop anciennes ou indisponibles : aucune entrée autorisée.";
         if (!preserveAnalysis) {
           $("score").textContent = "— / 100";
           $("scoreBar").style.width = "0%";
@@ -1194,7 +1256,7 @@
           signal = evaluateAt(r, i, pack, { h1Trend, h4Trend }),
           side = signal.side,
           score = signal.score,
-          valid = signal.valid,
+          valid = signal.valid && feedFresh,
           globalTrend = h1Trend === h4Trend ? h1Trend : "neutral";
         $("price").textContent = fmt(p);
         $("trend").textContent =
@@ -1299,7 +1361,7 @@
           ["Réaction", side === "BUY" ? bullReject : bearReject],
           ["Espace ≥3R", side === "BUY" ? rrBuy >= 3 : rrSell >= 3],
           ["ADX / force", signal.adx >= (signal.regime === "RANGE" ? 0 : 20)],
-          ["Données clôturées", true],
+          ["Données fraîches et clôturées", feedFresh],
         ];
         $("checks").innerHTML = checks
           .map(
@@ -1314,11 +1376,18 @@
           $("decision").textContent = side;
           $("decisionText").textContent =
             `${signal.strategy} validé sur bougie clôturée.`;
+          $("executionGate").className = "card executionGate ready";
+          $("executionState").className = side === "BUY" ? "green" : "red";
+          $("executionState").textContent = `SIGNAL ${side} VALIDÉ`;
+          $("executionGuide").textContent =
+            `Vérifier le prix d’entrée ${fmt(entry)}, placer le SL ${fmt(sl)} et respecter le risque prévu avant toute exécution.`;
           $("planText").textContent =
             `${signal.strategy} · Signal ${side} validé. Entry ${fmt(entry)} · SL ${fmt(sl)} · R:R ${fmt(space / risk)}.`;
         } else {
           setWait(
-            "Pas assez de confluence pour forcer une entrée. Attendre zone + confirmation.",
+            feedFresh
+              ? "Pas assez de confluence pour forcer une entrée. Attendre zone + confirmation."
+              : "Données trop anciennes. Signal automatiquement verrouillé.",
             true,
             true,
           );
