@@ -634,6 +634,7 @@
         rows = [],
         rowsH1 = [],
         rowsH4 = [],
+        chartZones = null,
         lastPrice = null,
         backtestRows = null,
         backtestPromise = null;
@@ -1107,6 +1108,7 @@
             new Date(a[a.length - 1].t).toLocaleTimeString("fr-CA");
         } catch (e) {
           rows = [];
+          chartZones = null;
           $("dataState").className = "status bad";
           $("dataState").textContent =
             "Erreur flux marché · " + e.message + " · ATTENDRE";
@@ -1237,6 +1239,16 @@
           `4H ${trendLabel(h4Trend)} · 1H ${trendLabel(h1Trend)} · ${TF[tf][0]} ${trendLabel(signal.currentTrend)}`;
         $("buyZone").textContent = fmt(buyLow) + " – " + fmt(buyHigh);
         $("sellZone").textContent = fmt(sellLow) + " – " + fmt(sellHigh);
+        chartZones = {
+          buyLow,
+          buyHigh,
+          sellLow,
+          sellHigh,
+          buyActive: inBuy,
+          sellActive: inSell,
+        };
+        $("chartLabel").textContent =
+          `XAU/USD · OANDA · zones dynamiques ${TF[tf][0]}`;
         $("fib").textContent =
           "23.6% " +
           fmt(f236) +
@@ -1456,8 +1468,16 @@
         x.clearRect(0, 0, box.width, box.height);
         if (!r.length) return;
         const a = r.slice(-100),
-          hi = Math.max(...a.map((z) => z.h)),
-          lo = Math.min(...a.map((z) => z.l)),
+          zoneValues = chartZones
+            ? [
+                chartZones.buyLow,
+                chartZones.buyHigh,
+                chartZones.sellLow,
+                chartZones.sellHigh,
+              ].filter(Number.isFinite)
+            : [],
+          hi = Math.max(...a.map((z) => z.h), ...zoneValues),
+          lo = Math.min(...a.map((z) => z.l), ...zoneValues),
           pad = 35,
           w = box.width,
           h = box.height,
@@ -1477,6 +1497,54 @@
           x.fillStyle = "#738096";
           x.font = "11px Arial";
           x.fillText(val.toFixed(2), w - 52, yy - 3);
+        }
+        const paintZone = (low, high, fill, stroke, label, active) => {
+          if (![low, high].every(Number.isFinite)) return;
+          const top = y(Math.max(low, high)),
+            bottom = y(Math.min(low, high)),
+            zoneH = Math.max(3, bottom - top),
+            labelText = `${label}  ${fmt(low)} – ${fmt(high)}${active ? "  ·  SURVEILLANCE" : ""}`;
+          x.fillStyle = fill;
+          x.fillRect(0, top, w, zoneH);
+          x.strokeStyle = stroke;
+          x.lineWidth = active ? 2 : 1;
+          x.beginPath();
+          x.moveTo(0, top);
+          x.lineTo(w, top);
+          x.moveTo(0, bottom);
+          x.lineTo(w, bottom);
+          x.stroke();
+          x.font = "bold 11px Arial";
+          const textW = x.measureText(labelText).width;
+          const tagY = Math.max(3, Math.min(h - 21, top + 5));
+          x.fillStyle = active ? stroke : "rgba(7, 12, 20, 0.88)";
+          x.fillRect(8, tagY, textW + 16, 18);
+          x.strokeStyle = stroke;
+          x.strokeRect(8, tagY, textW + 16, 18);
+          x.fillStyle = active ? "#071019" : stroke;
+          x.fillText(labelText, 16, tagY + 13);
+        };
+        if (chartZones) {
+          paintZone(
+            chartZones.sellLow,
+            chartZones.sellHigh,
+            chartZones.sellActive
+              ? "rgba(255, 93, 115, 0.24)"
+              : "rgba(255, 93, 115, 0.12)",
+            "#ff5d73",
+            "SELL ZONE",
+            chartZones.sellActive,
+          );
+          paintZone(
+            chartZones.buyLow,
+            chartZones.buyHigh,
+            chartZones.buyActive
+              ? "rgba(32, 230, 160, 0.24)"
+              : "rgba(32, 230, 160, 0.12)",
+            "#20e6a0",
+            "BUY ZONE",
+            chartZones.buyActive,
+          );
         }
         a.forEach((z, i) => {
           const xx = pad + i * step + step / 2,
