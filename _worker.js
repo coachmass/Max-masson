@@ -1,5 +1,32 @@
 const CORS={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Methods":"GET,OPTIONS","Access-Control-Allow-Headers":"Content-Type","Cache-Control":"no-store"};
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{...CORS,"Content-Type":"application/json;charset=utf-8"}});
-function yahooEnvelope(d,symbol){const r=d?.chart?.result?.[0];if(!r?.timestamp)return null;const q=r.indicators?.quote?.[0]||{},a=[];for(let i=0;i<r.timestamp.length;i++){const o=Number(q.open?.[i]),h=Number(q.high?.[i]),l=Number(q.low?.[i]),c=Number(q.close?.[i]);if([o,h,l,c].every(Number.isFinite))a.push({openTime:new Date(r.timestamp[i]*1000).toISOString(),open:o,high:h,low:l,close:c,tickVolume:Number(q.volume?.[i]||0)})}if(a.length<40)return null;return {chart:{result:[{meta:{symbol:"XAUUSD",proxy:symbol,source:"Yahoo Finance gold futures proxy"},timestamp:a.map(x=>Math.floor(Date.parse(x.openTime)/1000)),indicators:{quote:[{open:a.map(x=>x.open),high:a.map(x=>x.high),low:a.map(x=>x.low),close:a.map(x=>x.close),volume:a.map(x=>x.tickVolume)}]}}],error:null},source:"Yahoo Finance / GC=F",proxy:true}}
-async function yahoo(host,symbol,interval,range){const u=new URL(`https://${host}/v8/finance/chart/${symbol}`);u.searchParams.set("interval",interval);u.searchParams.set("range",range);u.searchParams.set("includePrePost","false");u.searchParams.set("events","history");const r=await fetch(u,{headers:{Accept:"application/json","User-Agent":"Mozilla/5.0"}});if(!r.ok)throw new Error(host+" "+r.status);return yahooEnvelope(await r.json(),symbol)}
-export default {async fetch(request,env){const url=new URL(request.url);if(request.method==="OPTIONS")return new Response(null,{status:204,headers:CORS});if(url.pathname==="/api/xauusd"){const requested=["5m","15m","30m","1h","4h"].includes(url.searchParams.get("interval"))?url.searchParams.get("interval"):"15m",interval=requested==="4h"?"1h":requested,range=["5m","15m","30m"].includes(interval)?"1mo":"6mo";for(const symbol of ["GC=F","XAUUSD=X"]){for(const host of ["query1.finance.yahoo.com","query2.finance.yahoo.com"]){try{const d=await yahoo(host,symbol,interval,range);if(d)return json({...d,fresh:Date.now()})}catch(e){}}}return json({error:"upstream_unavailable",message:"Gold market feed unavailable; signal engine locked to WAIT."},502)}if(url.pathname==="/smart-gold-v10-pro-macd"||url.pathname==="/smart-gold-v10-pro-macd/")return env.ASSETS.fetch(new Request(new URL("/smart-gold-v10-pro-macd.html",request.url),request));return env.ASSETS.fetch(request)}};
+const GRANULARITY={"5m":"M5","15m":"M15","30m":"M30","1h":"H1","4h":"H4"};
+
+async function oanda(env,interval){
+  if(!env.OANDA_API_TOKEN) throw new Error("OANDA_API_TOKEN missing");
+  const u=new URL("https://api-fxtrade.oanda.com/v3/instruments/XAU_USD/candles");
+  u.searchParams.set("price","M");
+  u.searchParams.set("granularity",GRANULARITY[interval]||"M15");
+  u.searchParams.set("count","5000");
+  const r=await fetch(u,{headers:{Authorization:`Bearer ${env.OANDA_API_TOKEN}`,Accept:"application/json"}});
+  if(!r.ok) throw new Error("OANDA "+r.status+" "+(await r.text()).slice(0,180));
+  const d=await r.json(), candles=(d.candles||[]).filter(x=>x?.mid);
+  if(candles.length<40) throw new Error("Not enough OANDA candles");
+  const timestamp=[],open=[],high=[],low=[],close=[],volume=[];
+  for(const x of candles){
+    timestamp.push(Math.floor(Date.parse(x.time)/1000));
+    open.push(Number(x.mid.o)); high.push(Number(x.mid.h)); low.push(Number(x.mid.l)); close.push(Number(x.mid.c)); volume.push(Number(x.volume||0));
+  }
+  return {chart:{result:[{meta:{symbol:"XAU_USD",source:"OANDA"},timestamp,indicators:{quote:[{open,high,low,close,volume}]}}],error:null},source:"OANDA / XAU_USD",proxy:false,fresh:Date.now()};
+}
+export default {async fetch(request,env){
+  const url=new URL(request.url);
+  if(request.method==="OPTIONS")return new Response(null,{status:204,headers:CORS});
+  if(url.pathname==="/api/xauusd"){
+    const interval=["5m","15m","30m","1h","4h"].includes(url.searchParams.get("interval"))?url.searchParams.get("interval"):"15m";
+    try{return json(await oanda(env,interval));}
+    catch(e){return json({error:"oanda_unavailable",message:String(e?.message||e),signalLocked:true},502);}
+  }
+  if(url.pathname==="/smart-gold-v10-pro-macd"||url.pathname==="/smart-gold-v10-pro-macd/")return env.ASSETS.fetch(new Request(new URL("/smart-gold-v10-pro-macd.html",request.url),request));
+  return env.ASSETS.fetch(request);
+}};
