@@ -27,6 +27,7 @@ export default {async fetch(request,env){
     try{return json(await oanda(env,interval));}
     catch(e){return json({error:"oanda_unavailable",message:String(e?.message||e),signalLocked:true},502);}
   }
+  if(!env.ASSETS || typeof env.ASSETS.fetch!=="function") return json({error:"assets_binding_missing",message:"Cloudflare ASSETS binding unavailable"},503);
   if(url.pathname==="/smart-gold-v10-pro-macd"||url.pathname==="/smart-gold-v10-pro-macd/")return env.ASSETS.fetch(new Request(new URL("/smart-gold-v10-pro-macd.html",request.url),request));
   return env.ASSETS.fetch(request);
 }};
