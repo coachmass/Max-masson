@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#060a10" />
-    <title>Smart Gold V10.11 Research Reset</title>
+    <title>Smart Gold V10.12 Robustness Lab</title>
     <style>
       :root {
         --bg: #05080d;
@@ -578,36 +578,32 @@
         </div>
       </section>
       <section class="card" id="momentumCandidateCard">
-        <div class="sectionTitle">RECHERCHE BUY + SELL · VALIDATION 3 ANS</div>
-        <div class="small">
-          Le moteur ne privilégie aucun sens. Il cherche une continuation avec tendance
-          ou un retracement contre-tendance confirmé, puis conserve uniquement les
-          configurations rentables hors échantillon après spread.
-        </div>
+        <div class="sectionTitle">VALIDATION BUY + SELL · 3 ANS</div>
         <div class="dashboard" style="margin-top: 8px">
           <div class="metricCard">
-            <div class="muted">SELL BREAKOUT</div>
-            <div class="big red">REJETÉ</div>
-            <div class="small">Résultat instable sur trois ans · avantage récent non généralisable.</div>
+            <div class="muted">AUTOMATISATION</div>
+            <div class="big red">BLOQUÉE</div>
+            <div class="small">Aucune stratégie ne passe toutes les épreuves de robustesse.</div>
           </div>
           <div class="metricCard">
-            <div class="muted">BUY BREAKOUT</div>
-            <div class="big red">REJETÉ</div>
-            <div class="small">Développement −20,15R · test final −22,92R.</div>
+            <div class="muted">MEILLEURE PISTE</div>
+            <div class="big gold">SELL CONTINUATION</div>
+            <div class="small">Positive en base, mais fragile au retard d’exécution.</div>
           </div>
         </div>
         <div class="small essentialHint">
-          Prochaine recherche : sweep de liquidité → changement de structure →
-          retracement confirmé → cible de liquidité. BUY et SELL sont testés séparément.
-          Aucun ordre automatique autorisé.
+          BUY, SELL, continuations et retracements sont tous testés. Le programme
+          attendra une configuration positive hors échantillon, en walk-forward
+          et sous stress avant d’autoriser un signal automatique.
         </div>
         <details class="inlineDetails">
-          <summary>Pourquoi les anciens signaux sont bloqués?</summary>
+          <summary>Voir le verdict du laboratoire</summary>
           <div class="small">
-            Le SELL paraissait positif sur une seule année, mais ses périodes de
-            développement antérieures étaient négatives. Le BUY symétrique échoue
-            également, et aucun mois walk-forward n’a satisfait les critères.
-            Le programme préfère donc attendre plutôt que présenter un faux avantage.
+            Le SELL avec sweep + cassure de structure atteint +6,71R en développement
+            et +4,50R au test final, mais tombe à −3,60R lorsqu’on retarde l’entrée
+            de 5 minutes. Le walk-forward global produit −5,40R (PF 0,62).
+            Les retracements BUY et SELL échouent également. Verdict : recherche
+            seulement, aucun ordre réel ni paper candidat actif.
           </div>
         </details>
         <div style="display:none" aria-hidden="true">
@@ -872,7 +868,7 @@
         </div>
       </section>
       <footer class="footer">
-        <span>Smart Gold V10.11 Research Reset · créé pour Maxime Masson</span
+        <span>Smart Gold V10.12 Robustness Lab · créé pour Maxime Masson</span
         ><span class="green">● Signal sécurisé</span>
       </footer>
     </main>
@@ -2587,7 +2583,7 @@
           )
           .join("");
         $("btStatus").textContent = n
-            ? `V10.11 Research Reset · OANDA bid/ask · M15 avec contexte H1/4H sur ${(days / 365.25).toFixed(2)} an · ${n} trades · ${wins} TP1 · ${losses} SL · ${breakevens} BE · ${timeouts} sorties après 8 h · ${pnl.toFixed(1)}R net. ${strategySummary}`
+            ? `V10.12 Robustness Lab · OANDA bid/ask · M15 avec contexte H1/4H sur ${(days / 365.25).toFixed(2)} an · ${n} trades · ${wins} TP1 · ${losses} SL · ${breakevens} BE · ${timeouts} sorties après 8 h · ${pnl.toFixed(1)}R net. ${strategySummary}`
           : "Aucun signal complet clôturé sur les bougies disponibles.";
         $("btQuality").textContent =
           `Fréquence : ${signalsPerWeek.toFixed(1)}/semaine · ${signalsPerDay.toFixed(2)}/jour de marché · ${noSignalDays} jour(s) et ${noSignalWeeks} semaine(s) sans entrée. Qualité : ${quality}. Validation : 75 % développement en 3 blocs + purge 8 h + 25 % test final intact. Stratégies autorisées en direct : ${approvedStrategies.size ? [...approvedStrategies].join(", ") : "AUCUNE — MODE RECHERCHE"}. Sessions — ${sessionSummary || "aucune"}.`;
