@@ -947,6 +947,14 @@
           </div>
         </details>
       </section>
+      <section class="card" data-research-export="v1">
+        <details>
+          <summary>Exporter les données de recherche</summary>
+          <p class="small">Télécharge les bougies M5 clôturées avec les prix bid/ask pour poursuivre les tests.</p>
+          <button id="exportResearch">Télécharger les bougies M5</button>
+          <p id="exportResearchStatus" class="small" role="status"></p>
+        </details>
+      </section>
       <section class="card">
         <div class="sectionTitle">RÈGLES DE PROTECTION DU CAPITAL</div>
         <div class="checks">
@@ -977,6 +985,7 @@
         rowsH1 = [],
         rowsH4 = [],
         rowsM5 = [],
+        rowsM5ObservedAt = 0,
         chartZones = null,
         feedFresh = false,
         isLoading = false,
@@ -1506,6 +1515,7 @@
             throw Error("bougies OANDA invalides");
           rows = a;
           rowsM5 = m5;
+          rowsM5ObservedAt = Date.now();
           rowsH1 = h1;
           rowsH4 = h4;
           const candleAge = Date.now() - a[a.length - 1].t,
@@ -1527,6 +1537,7 @@
         } catch (e) {
           rows = [];
           rowsM5 = [];
+          rowsM5ObservedAt = 0;
           chartZones = null;
           feedFresh = false;
           $("dataState").className = "status bad";
@@ -2822,6 +2833,45 @@
         });
         x.stroke();
       }
+      function buildResearchExport(sourceRows, observedAt) {
+        if (!sourceRows.length || !Number.isFinite(observedAt) || observedAt <= 0)
+          throw Error("Actualise d’abord les données du marché.");
+        const fields = ["o", "h", "l", "c", "bo", "bh", "bl", "bc", "ao", "ah", "al", "ac"];
+        const closed = [], seen = new Set();
+        for (const row of sourceRows) {
+          if (!Number.isSafeInteger(row.t) || row.t % 300000)
+            throw Error("Horodatage M5 invalide : export interrompu.");
+          if (row.t + 300000 > observedAt) continue;
+          if (fields.some(k => !Number.isFinite(row[k]) || row[k] <= 0))
+            throw Error("Prix bid/ask incomplets : export interrompu.");
+          for (const p of ["", "b", "a"])
+            if (row[p + "l"] > Math.min(row[p + "o"], row[p + "c"]) || row[p + "h"] < Math.max(row[p + "o"], row[p + "c"]))
+              throw Error("Bougie incohérente : export interrompu.");
+          for (const k of ["o", "h", "l", "c"])
+            if (row["a" + k] < row["b" + k]) throw Error("Spread invalide : export interrompu.");
+          if (seen.has(row.t)) throw Error("Doublon de bougie : export interrompu.");
+          seen.add(row.t);
+          closed.push({ t: row.t, ...Object.fromEntries(fields.map(k => [k, row[k]])), complete: true });
+        }
+        if (!closed.length) throw Error("Aucune bougie clôturée disponible.");
+        closed.sort((a, b) => a.t - b.t);
+        return { schema: "smart-gold-m5-mba-v1", source: "Smart Gold / OANDA XAU_USD", observedAtUtc: new Date(observedAt).toISOString(), rows: closed };
+      }
+      function downloadResearchExport() {
+        const status = $("exportResearchStatus");
+        try {
+          if (isLoading) throw Error("Chargement en cours : réessaie une fois terminé.");
+          const data = buildResearchExport(rowsM5, rowsM5ObservedAt);
+          const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
+          const url = URL.createObjectURL(blob), link = document.createElement("a");
+          link.href = url;
+          link.download = "smart-gold-m5-" + data.observedAtUtc.replace(/[:.]/g, "-") + ".json";
+          document.body.appendChild(link); link.click(); link.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+          status.textContent = data.rows.length + " bougies exportées · dernière clôture " + new Date(data.rows.at(-1).t + 300000).toLocaleString("fr-CA");
+        } catch (error) { status.textContent = error.message; }
+      }
+      $("exportResearch").onclick = downloadResearchExport;
       $("refresh").onclick = load;
       window.addEventListener("resize", () => rows.length && draw(rows));
       setInterval(() => {
@@ -2846,3 +2896,4 @@
     </script>
   </body>
 </html>
+
