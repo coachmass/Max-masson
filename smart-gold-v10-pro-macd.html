@@ -612,19 +612,19 @@
                 <b id="rr">—</b>
               </div>
               <div class="level">
-                <div class="muted">TP1 · 3R</div>
+                <div id="tp1Label" class="muted">TP1 · EN RECHERCHE</div>
                 <b id="tp1">—</b>
               </div>
               <div class="level">
-                <div class="muted">TP2 · 4R</div>
+                <div id="tp2Label" class="muted">TP2 · EXTENSION</div>
                 <b id="tp2">—</b>
               </div>
               <div class="level">
-                <div class="muted">TP3 · 6R</div>
+                <div id="tp3Label" class="muted">TP3 · EXTENSION</div>
                 <b id="tp3">—</b>
               </div>
               <div class="level">
-                <div class="muted">TP4 · 8R</div>
+                <div id="tp4Label" class="muted">TP4 · EXTENSION</div>
                 <b id="tp4">—</b>
               </div>
             </div>
@@ -721,7 +721,7 @@
                 <th>ESPÉRANCE</th>
                 <th>MAX DD</th>
                 <th>PERTES CONSÉCUTIVES</th>
-                <th>STATUT LIVE</th>
+                <th>STATUT BASE 3R</th>
               </tr>
             </thead>
             <tbody id="strategyValidationRows">
@@ -750,8 +750,8 @@
           <div class="check ok">✓ Break-even : +1R</div>
           <div class="check ok">✓ Entrée : score ≥75/100</div>
           <div class="check ok">✓ Espace structurel : ≥3R</div>
-          <div class="check ok">✓ TP1 3R · TP2 4R · TP3 6R</div>
-          <div class="check ok">✓ TP4 8R + trailing structurel</div>
+          <div class="check ok">✓ TP1 adaptatif : 1,5R · 2R · 3R</div>
+          <div class="check ok">✓ Extensions seulement après validation</div>
         </div>
       </section>
       <footer class="footer">
@@ -781,9 +781,37 @@
         backtestPromise = null,
         backtestComputed = false,
         validationReady = false,
-        approvedStrategies = new Set();
+        approvedStrategies = new Set(),
+        approvedPatterns = new Map();
       const $ = (id) => document.getElementById(id),
-        fmt = (n) => Number(n).toFixed(2);
+        fmt = (n) => Number(n).toFixed(2),
+        sessionClocks = {
+          london: new Intl.DateTimeFormat("en-GB", {
+            timeZone: "Europe/London",
+            hour: "2-digit",
+            hourCycle: "h23",
+          }),
+          newYork: new Intl.DateTimeFormat("en-US", {
+            timeZone: "America/New_York",
+            hour: "2-digit",
+            hourCycle: "h23",
+          }),
+          tokyo: new Intl.DateTimeFormat("en-US", {
+            timeZone: "Asia/Tokyo",
+            hour: "2-digit",
+            hourCycle: "h23",
+          }),
+        },
+        zonedHour = (t, clock) => Number(clock.format(new Date(t))),
+        marketSession = (t) => {
+          const nyHour = zonedHour(t, sessionClocks.newYork),
+            londonHour = zonedHour(t, sessionClocks.london),
+            tokyoHour = zonedHour(t, sessionClocks.tokyo);
+          if (nyHour >= 8 && nyHour < 13) return "NEW YORK";
+          if (londonHour >= 8 && londonHour < 13) return "LONDRES";
+          if (tokyoHour >= 9 && tokyoHour < 15) return "ASIE";
+          return "HORS SESSION";
+        };
       Object.entries(TF).forEach(([k, v]) => {
         const b = document.createElement("button");
         b.textContent = v[0];
@@ -1389,7 +1417,12 @@
           signal = evaluateAt(r, i, pack, { h1Trend, h4Trend }),
           side = signal.side,
           score = signal.score,
-          strategyApproved = approvedStrategies.has(signal.strategy),
+          approvedPattern = approvedPatterns.get(signal.strategy),
+          currentSession = marketSession(r[i].t),
+          strategyApproved =
+            approvedStrategies.has(signal.strategy) &&
+            approvedPattern?.side === side &&
+            approvedPattern.sessions.includes(currentSession),
           valid = signal.valid && feedFresh && validationReady && strategyApproved,
           globalTrend = h1Trend === h4Trend ? h1Trend : "neutral";
         $("price").textContent = fmt(p);
@@ -1469,7 +1502,11 @@
           sl = side === "BUY" ? entry - risk : entry + risk,
           sign = side === "BUY" ? 1 : -1,
           space = side === "BUY" ? spaceBuy : spaceSell,
-          tps = [3, 4, 6, 8].map((x) => entry + sign * risk * x);
+          primaryTargetR = approvedPattern?.targetR || 3,
+          tpRs = approvedPattern
+            ? [primaryTargetR, primaryTargetR + 1, primaryTargetR + 2, primaryTargetR + 4]
+            : [3, 4, 6, 8],
+          tps = tpRs.map((x) => entry + sign * risk * x);
         $("entry").textContent = fmt(entry);
         $("sl").textContent = fmt(sl);
         $("be").textContent = fmt(entry + sign * risk);
@@ -1478,6 +1515,12 @@
         $("tp2").textContent = fmt(tps[1]);
         $("tp3").textContent = fmt(tps[2]);
         $("tp4").textContent = fmt(tps[3]);
+        $("tp1Label").textContent = approvedPattern
+          ? `CIBLE VALIDÉE · ${tpRs[0].toFixed(1)}R`
+          : "TP1 · EN RECHERCHE";
+        $("tp2Label").textContent = `EXTENSION · ${tpRs[1].toFixed(1)}R`;
+        $("tp3Label").textContent = `EXTENSION · ${tpRs[2].toFixed(1)}R`;
+        $("tp4Label").textContent = `EXTENSION · ${tpRs[3].toFixed(1)}R`;
         $("buyReason").textContent = inBuy
           ? "Zone active · chercher rejet haussier."
           : "Attendre retour + confirmation.";
@@ -1495,7 +1538,7 @@
           ["Réaction", side === "BUY" ? bullReject : bearReject],
           ["Espace ≥3R", side === "BUY" ? rrBuy >= 3 : rrSell >= 3],
           ["ADX / force", signal.adx >= (signal.regime === "RANGE" ? 0 : 20)],
-          ["Stratégie rentable au backtest", validationReady && strategyApproved],
+          ["Pattern R:R + session + sens validé", validationReady && strategyApproved],
           ["Données fraîches et clôturées", feedFresh],
         ];
         $("checks").innerHTML = checks
@@ -1510,14 +1553,14 @@
           $("decision").className = "big " + (side === "BUY" ? "green" : "red");
           $("decision").textContent = side;
           $("decisionText").textContent =
-            `${signal.strategy} validé sur bougie clôturée.`;
+            `${signal.strategy} · ${approvedPattern.label} · 1:${approvedPattern.targetR.toFixed(1)} validé sur bougie clôturée.`;
           $("executionGate").className = "card executionGate ready";
           $("executionState").className = side === "BUY" ? "green" : "red";
           $("executionState").textContent = `SIGNAL ${side} VALIDÉ`;
           $("executionGuide").textContent =
             `Vérifier le prix d’entrée ${fmt(entry)}, placer le SL ${fmt(sl)} et respecter le risque prévu avant toute exécution.`;
           $("planText").textContent =
-            `${signal.strategy} · Signal ${side} validé. Entry ${fmt(entry)} · SL ${fmt(sl)} · R:R ${fmt(space / risk)}.`;
+            `${signal.strategy} · ${approvedPattern.label} · Signal ${side} validé. Entry ${fmt(entry)} · SL ${fmt(sl)} · cible validée 1:${approvedPattern.targetR.toFixed(1)}.`;
         } else {
           setWait(
             feedFresh
@@ -1561,6 +1604,7 @@
       }
       function backtest(r) {
         approvedStrategies.clear();
+        approvedPatterns.clear();
         validationReady = false;
         const executableRatio =
           r.filter((x) => x.executable).length / Math.max(r.length, 1);
@@ -1601,13 +1645,7 @@
               .toISOString()
               .slice(0, 10);
           },
-          sessionName = (t) => {
-            const hour = new Date(t).getUTCHours();
-            if (hour < 7) return "ASIE";
-            if (hour < 12) return "LONDRES";
-            if (hour < 17) return "NEW YORK";
-            return "HORS SESSION";
-          },
+          sessionName = marketSession,
           simulateProfile = (startIndex, side, entry, risk, targetR) => {
             const sl = entry - side * risk,
               tp = entry + side * risk * targetR,
@@ -1946,7 +1984,6 @@
                 finalTest.pf >= 1.15 &&
                 finalTest.expectancy > 0 &&
                 finalTest.maxDrawdown <= 8;
-            if (approved) approvedStrategies.add(name);
             return { name, development, finalTest, total, approved };
           }),
           metricText = (m) =>
@@ -2013,28 +2050,40 @@
             contextDefinitions = [
               {
                 label: "LONDRES · BUY",
+                sessions: ["LONDRES"],
+                side: "BUY",
                 matches: (x) => x.session === "LONDRES" && x.side === "BUY",
               },
               {
                 label: "LONDRES · SELL",
+                sessions: ["LONDRES"],
+                side: "SELL",
                 matches: (x) => x.session === "LONDRES" && x.side === "SELL",
               },
               {
                 label: "NEW YORK · BUY",
+                sessions: ["NEW YORK"],
+                side: "BUY",
                 matches: (x) => x.session === "NEW YORK" && x.side === "BUY",
               },
               {
                 label: "NEW YORK · SELL",
+                sessions: ["NEW YORK"],
+                side: "SELL",
                 matches: (x) => x.session === "NEW YORK" && x.side === "SELL",
               },
               {
                 label: "LONDRES + NY · BUY",
+                sessions: ["LONDRES", "NEW YORK"],
+                side: "BUY",
                 matches: (x) =>
                   ["LONDRES", "NEW YORK"].includes(x.session) &&
                   x.side === "BUY",
               },
               {
                 label: "LONDRES + NY · SELL",
+                sessions: ["LONDRES", "NEW YORK"],
+                side: "SELL",
                 matches: (x) =>
                   ["LONDRES", "NEW YORK"].includes(x.session) &&
                   x.side === "SELL",
@@ -2050,6 +2099,8 @@
                 );
               return {
                 label: definition.label,
+                sessions: definition.sessions,
+                side: definition.side,
                 development: metricsFor(developmentRecords),
                 finalTest: metricsFor(finalRecords),
                 finalRecords,
@@ -2079,6 +2130,15 @@
             medianMae = medianOf(
               selectedContext.finalRecords.map((x) => x.maxAdverseR),
             );
+          if (robust) {
+            approvedStrategies.add(name);
+            approvedPatterns.set(name, {
+              targetR: selected.targetR,
+              label: selectedContext.label,
+              sessions: selectedContext.sessions,
+              side: selectedContext.side,
+            });
+          }
           return {
             name,
             targetR: selected.targetR,
