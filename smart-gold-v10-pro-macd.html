@@ -696,7 +696,9 @@
         lastPrice = null,
         backtestRows = null,
         backtestPromise = null,
-        backtestComputed = false;
+        backtestComputed = false,
+        validationReady = false,
+        approvedStrategies = new Set();
       const $ = (id) => document.getElementById(id),
         fmt = (n) => Number(n).toFixed(2);
       Object.entries(TF).forEach(([k, v]) => {
@@ -1228,9 +1230,11 @@
         $("executionGate").className = "card executionGate locked";
         $("executionState").className = "gold";
         $("executionState").textContent = "ENTRÉE BLOQUÉE";
-        $("executionGuide").textContent = feedFresh
-          ? "Signal incomplet : attendre la zone, la clôture et toutes les confirmations."
-          : "Données trop anciennes ou indisponibles : aucune entrée autorisée.";
+        $("executionGuide").textContent = !feedFresh
+          ? "Données trop anciennes ou indisponibles : aucune entrée autorisée."
+          : !validationReady
+            ? "Mode recherche : validation historique M15 en cours."
+            : "Signal incomplet ou stratégie non approuvée statistiquement.";
         if (!preserveAnalysis) {
           $("score").textContent = "— / 100";
           $("scoreBar").style.width = "0%";
@@ -1293,7 +1297,8 @@
           signal = evaluateAt(r, i, pack, { h1Trend, h4Trend }),
           side = signal.side,
           score = signal.score,
-          valid = signal.valid && feedFresh,
+          strategyApproved = approvedStrategies.has(signal.strategy),
+          valid = signal.valid && feedFresh && validationReady && strategyApproved,
           globalTrend = h1Trend === h4Trend ? h1Trend : "neutral";
         $("price").textContent = fmt(p);
         $("trend").textContent =
@@ -1398,6 +1403,7 @@
           ["Réaction", side === "BUY" ? bullReject : bearReject],
           ["Espace ≥3R", side === "BUY" ? rrBuy >= 3 : rrSell >= 3],
           ["ADX / force", signal.adx >= (signal.regime === "RANGE" ? 0 : 20)],
+          ["Stratégie rentable au backtest", validationReady && strategyApproved],
           ["Données fraîches et clôturées", feedFresh],
         ];
         $("checks").innerHTML = checks
@@ -1429,7 +1435,7 @@
             true,
           );
           $("planText").textContent =
-            `${signal.strategy} détecté mais NON VALIDÉ. Score ${score}/100 · vérifier régime, multi-TF et confirmations.`;
+            `${signal.strategy} détecté mais NON VALIDÉ. Score ${score}/100 · ${!validationReady ? "validation historique en cours" : strategyApproved ? "confirmations incomplètes" : "stratégie non rentable ou échantillon insuffisant"}.`;
         }
         $("marketText").innerHTML =
           `<b>Régime :</b> ${signal.regime} · stratégie sélectionnée ${signal.strategy}.<br><br><b>Multi-timeframe :</b> 4H ${trendLabel(h4Trend).toLowerCase()} · 1H ${trendLabel(h1Trend).toLowerCase()} · ${TF[tf][0]} ${trendLabel(signal.currentTrend).toLowerCase()}.<br><br><b>Contexte ${TF[tf][0]} :</b> prix ${fmt(p)} · EMA20 ${fmt(e20[i])} · EMA50 ${fmt(e50[i])} · EMA200 ${fmt(e200[i])} · RSI14 ${fmt(R[i])} · ATR14 ${fmt(A[i])} · ADX14 ${fmt(signal.adx)}.<br><br><b>Lecture :</b> MACD ${macdBull ? "haussier" : macdBear ? "baissier" : "neutre"}. <b>Aucune entrée sans régime adapté, alignement et confirmation clôturée.</b><br><br><span class="proxy">✓ Données moteur : OANDA XAU/USD.</span>`;
@@ -1462,6 +1468,8 @@
         }
       }
       function backtest(r) {
+        approvedStrategies.clear();
+        validationReady = false;
         let wins = 0,
           losses = 0,
           breakevens = 0,
@@ -1617,11 +1625,17 @@
             losses: 0,
             breakevens: 0,
             timeouts: 0,
+            pnl: 0,
+            grossWin: 0,
+            grossLoss: 0,
           };
           if (outcomeType === "TP1") stat.wins++;
           else if (outcomeType === "SL") stat.losses++;
           else if (outcomeType === "BE") stat.breakevens++;
           else stat.timeouts++;
+          stat.pnl += outcomeR;
+          if (outcomeR > 0) stat.grossWin += outcomeR;
+          else stat.grossLoss += Math.abs(outcomeR);
           strategyStats.set(signal.strategy, stat);
           const sessionStat = sessionStats.get(session) || { trades: 0, wins: 0 };
           sessionStat.trades++;
@@ -1657,7 +1671,19 @@
         const strategySummary = [...strategyStats.entries()]
           .map(([name, s]) => {
             const total = s.wins + s.losses + s.breakevens + s.timeouts;
-            return `${name}: ${total} · ${((s.wins / total) * 100).toFixed(1)}% TP1`;
+            const strategyPf = s.grossLoss
+              ? s.grossWin / s.grossLoss
+              : s.grossWin
+                ? Infinity
+                : 0;
+            if (
+              total >= 40 &&
+              s.pnl > 0 &&
+              strategyPf >= 1.3 &&
+              s.wins / total >= 0.3
+            )
+              approvedStrategies.add(name);
+            return `${name}: ${total} · ${((s.wins / total) * 100).toFixed(1)}% TP1 · ${s.pnl.toFixed(1)}R · PF ${Number.isFinite(strategyPf) ? strategyPf.toFixed(2) : "∞"}`;
           })
           .join(" · "),
           sessionSummary = [...sessionStats.entries()]
@@ -1669,8 +1695,10 @@
             ? `V10.2 Day Trading · M15 avec contexte H1/4H sur ${(days / 365.25).toFixed(2)} an · ${n} trades · ${wins} TP1 · ${losses} SL · ${breakevens} BE · ${timeouts} sorties après 8 h · ${pnl.toFixed(1)}R net. ${strategySummary}`
           : "Aucun signal complet clôturé sur les bougies disponibles.";
         $("btQuality").textContent =
-          `Fréquence : ${signalsPerWeek.toFixed(1)}/semaine · ${signalsPerDay.toFixed(2)}/jour de marché · ${noSignalDays} jour(s) et ${noSignalWeeks} semaine(s) sans entrée. Qualité : ${quality}. Sessions — ${sessionSummary || "aucune"}. Objectif personnel : approcher 1 signal valide/jour sans relâcher les règles.`;
+          `Fréquence : ${signalsPerWeek.toFixed(1)}/semaine · ${signalsPerDay.toFixed(2)}/jour de marché · ${noSignalDays} jour(s) et ${noSignalWeeks} semaine(s) sans entrée. Qualité : ${quality}. Stratégies autorisées en direct : ${approvedStrategies.size ? [...approvedStrategies].join(", ") : "AUCUNE — MODE RECHERCHE"}. Sessions — ${sessionSummary || "aucune"}.`;
+        validationReady = true;
         backtestComputed = true;
+        setTimeout(() => analyze(), 0);
       }
       function draw(r) {
         const c = $("chartCanvas"),
