@@ -354,12 +354,7 @@ function run(cfg, stress = {}) {
         break;
       }
     }
-    const entryIndex = confirm + 1 + (stress.delayBars || 0);
-    if (confirm < 0 || entryIndex >= rows.length || !inEntrySession(rows[entryIndex].t)) continue;
-    if (stress.newsFilter) {
-      const event = newsAt(rows[entryIndex].t);
-      if (event) { blockedNews[event.kind]++; continue; }
-    }
+    if (confirm < 0) continue;
     if (cfg.contextFilter?.includes("VOLUME")) {
       const volumeMean = rows.slice(Math.max(0, confirm - 20), confirm)
         .reduce((sum, x) => sum + x.v, 0) / Math.min(20, confirm);
@@ -374,7 +369,31 @@ function run(cfg, stress = {}) {
       const localTurn = cfg.side === 1 ? rows[confirm].c > e20 : rows[confirm].c < e20;
       if (!Number.isFinite(e20) || !localTurn) continue;
     }
-    const quotedEntry = cfg.side === 1 ? rows[entryIndex].ao : rows[entryIndex].bo;
+    let entryIndex = confirm + 1 + (stress.delayBars || 0), quotedEntry = null;
+    if (cfg.entryMode === "RETEST") {
+      // Resting limit order at 50% of the confirmation candle's quoted body.
+      // A delayed stress order can miss an immediate retest rather than being
+      // credited with a fill that was no longer available.
+      const limit = cfg.side === 1
+        ? (rows[confirm].ao + rows[confirm].ac) / 2
+        : (rows[confirm].bo + rows[confirm].bc) / 2;
+      const lastRetest = Math.min(rows.length - 1, entryIndex + (cfg.retestBars ?? 6) - 1);
+      let fill = -1;
+      for (let j = entryIndex; j <= lastRetest; j++) {
+        const touched = cfg.side === 1 ? rows[j].al <= limit : rows[j].bh >= limit;
+        if (touched) { fill = j; break; }
+      }
+      if (fill < 0) continue;
+      entryIndex = fill;
+      quotedEntry = limit;
+    }
+    if (entryIndex >= rows.length) continue;
+    if (!cfg.allowEntryAfterSession && !inEntrySession(rows[entryIndex].t)) continue;
+    if (stress.newsFilter) {
+      const event = newsAt(rows[entryIndex].t);
+      if (event) { blockedNews[event.kind]++; continue; }
+    }
+    quotedEntry ??= cfg.side === 1 ? rows[entryIndex].ao : rows[entryIndex].bo;
     const entry = quotedEntry + cfg.side * p5.a[confirm] * (stress.slipAtr || 0);
     // Structure-led stop. The ATR component is only the breathing room beyond
     // the swept extreme; it is not a fixed pip distance.
@@ -675,6 +694,27 @@ const asiaRangeConfigs = buildReferenceConfigs("ASIA_QC", "PRE_ASIA_QC");
 const londonRangeConfigs = buildReferenceConfigs("LONDON", "ASIA_BEFORE_LONDON");
 const asiaRangeStudy = runReferenceStudy(asiaRangeConfigs);
 const londonRangeStudy = runReferenceStudy(londonRangeConfigs);
+const asiaRetestConfigs = [];
+for (const family of ["CONTINUATION", "RETRACEMENT"])
+for (const side of [1, -1])
+for (const confirmBars of [3, 6])
+for (const targetR of family === "CONTINUATION" ? [1.5, 2] : [1, 1.5])
+for (const retestBars of [3, 6, 12])
+  asiaRetestConfigs.push({
+    family,
+    side,
+    sweepBars: 12,
+    confirmBars,
+    targetR,
+    exitMode: "FIXED",
+    sessionFilter: "ASIA_QC",
+    referenceRange: "PRE_ASIA_QC",
+    stopAtrBuffer: 0.15,
+    entryMode: "RETEST",
+    retestBars,
+    allowEntryAfterSession: true,
+  });
+const asiaRetestStudy = runReferenceStudy(asiaRetestConfigs);
 console.log(JSON.stringify({
   bars: rows.length,
   start: new Date(rows[0].t).toISOString(),
@@ -800,5 +840,17 @@ console.log(JSON.stringify({
       bestObservedBeforeQualification: londonRangeStudy.all[0] || null,
       candidatesUnderStress: londonRangeStudy.stressed,
     },
+  },
+  asiaRetestStudy: {
+    signalSession: "20:00-23:00_AMERICA_TORONTO",
+    referenceRange: "17:00-20:00_AMERICA_TORONTO",
+    entry: "LIMIT_AT_50_PERCENT_CONFIRMATION_BODY",
+    retestWindowsMinutes: [15, 30, 60],
+    entryMayOccurAfterSession: true,
+    selectionUsesFinalTest: false,
+    tested: asiaRetestConfigs.length,
+    developmentQualified: asiaRetestStudy.qualified.length,
+    bestObservedBeforeQualification: asiaRetestStudy.all[0] || null,
+    candidatesUnderStress: asiaRetestStudy.stressed,
   },
 }, null, 2));
