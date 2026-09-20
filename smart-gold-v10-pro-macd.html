@@ -467,6 +467,55 @@
         margin-top: 8px;
         color: var(--muted);
       }
+      .backtestHeading {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 12px 0 6px;
+      }
+      .backtestMetrics {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 12px;
+      }
+      .backtestMetrics .metricCard {
+        min-height: 0;
+      }
+      .backtestMetrics .muted {
+        font-size: 11px;
+      }
+      .backtestMetrics .big {
+        font-size: 25px;
+        overflow-wrap: anywhere;
+      }
+      .backtestDetails {
+        margin-top: 12px;
+        border-top: 1px solid var(--line);
+      }
+      .backtestDetails .advancedBody {
+        line-height: 1.6;
+      }
+      .backtestDetails > summary {
+        letter-spacing: normal !important;
+      }
+      .backtestResearchLabel {
+        color: var(--gold);
+        font-size: 12px;
+      }
+      .backtestMinorStats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 18px;
+        margin: 10px 0;
+      }
+      @media (max-width: 650px) {
+        .backtestMetrics {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
       .paperStats {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -799,38 +848,43 @@
           une condition critique manque, le moteur reste sur ATTENDRE.
         </div>
       </div></details>
-      <section class="card" id="backtestSection">
-        <div class="sectionTitle">BACKTEST DU MOTEUR ACTUEL · 12 MOIS</div>
-        <div class="small" id="btStatus">Calcul en attente…</div>
-        <div class="small" id="btQuality" style="margin-top: 5px">Validation statistique : en attente.</div>\n        <div class="small essentialHint">Ce bloc teste uniquement les règles actuellement utilisées par les signaux. Les essais du laboratoire sur trois ans sont séparés et ne modifient ce résultat qu’après validation complète.</div>
-        <div class="dashboard" style="margin-top: 8px">
+      <section class="card" id="backtestSection" data-results-view="2026-09-20-v1" aria-labelledby="backtestTitle">
+        <div class="sectionTitle" id="backtestTitle">RÉSULTATS DES TESTS</div>
+        <div class="backtestHeading">
+          <b>Moteur du site · V10.20</b>
+          <span class="small">12 derniers mois disponibles</span>
+        </div>
+        <div class="small" id="btPeriod">Période exacte disponible après le calcul.</div>
+        <div class="small essentialHint" id="btVerdict" role="status">Calcul en attente…</div>
+        <div class="backtestMetrics">
           <div class="metricCard">
-            <div class="muted">WIN RATE</div>
-            <div id="wr" class="big">—</div>
+            <div class="muted">RÉSULTAT NET</div>
+            <div id="btNet" class="big">—</div>
           </div>
           <div class="metricCard">
             <div class="muted">TRADES</div>
             <div id="trades" class="big">—</div>
           </div>
-          <div class="metricCard optionalMetric">
-            <div class="muted">SIGNAUX / SEMAINE</div>
+          <div class="metricCard">
+            <div class="muted">TRADES / SEMAINE</div>
             <div id="signalsWeek" class="big">—</div>
           </div>
-          <div class="metricCard optionalMetric">
-            <div class="muted">SIGNAUX / JOUR</div>
-            <div id="signalsDay" class="big">—</div>
-          </div>
           <div class="metricCard">
-            <div class="muted">PROFIT FACTOR</div>
-            <div id="pf" class="big">—</div>
-          </div>
-          <div class="metricCard">
-            <div class="muted">MAX DD</div>
+            <div class="muted">RECUL MAXIMAL</div>
             <div id="dd" class="big">—</div>
           </div>
         </div>
-        <details class="inlineDetails">
-          <summary>Voir les détails statistiques</summary>
+        <div class="small essentialHint" id="btMoney">1 R = le montant risqué au départ sur un trade.</div>
+        <details class="inlineDetails backtestDetails">
+          <summary>Détails du moteur actuel</summary>
+          <div class="advancedBody">
+          <div class="small" id="btStatus">Calcul en attente…</div>
+          <div class="small" id="btQuality" style="margin-top: 5px">Validation statistique : en attente.</div>
+          <div class="small backtestMinorStats">
+            <span>TP1 atteints : <b id="wr">—</b></span>
+            <span>Profit factor : <b id="pf">—</b></span>
+            <span>Trades / jour coté : <b id="signalsDay">—</b></span>
+          </div>
           <div class="tableWrap" aria-label="Validation hors échantillon par stratégie">
           <table class="validationTable">
             <thead>
@@ -859,13 +913,38 @@
           les choisit uniquement dans la période de développement. Il ne simule
           qu’un seul trade à la fois et purge huit heures autour de la séparation
           pour éviter la fuite d’information. Les premiers 75 % sont aussi
-          divisés en trois blocs chronologiques; les derniers 25 % restent un test
-          final intact. Un profil doit conserver un win rate majoritaire, une
+          divisés en trois blocs chronologiques; les derniers 25 % forment une
+          période de test distincte. Un profil doit conserver un win rate majoritaire, une
           espérance positive et une stabilité multi-périodes avant d’être autorisé.
           Les performances passées
           ne garantissent pas les résultats futurs.
         </div>
-      
+          </div>
+        </details>
+        <details class="inlineDetails backtestDetails" id="researchBacktest">
+          <summary>Essai M5/M15 · +10,35 R · Exploratoire</summary>
+          <div class="advancedBody">
+            <div class="backtestHeading">
+              <b>Cassure + retest confirmé</b>
+              <span class="backtestResearchLabel">EXPLORATOIRE</span>
+            </div>
+            <div class="small">21 sept. 2023 – 18 déc. 2025 · Étude du 20 sept. 2026</div>
+            <div class="small essentialHint">BUY et SELL · Toutes les sessions · Durée maximale de 4 h</div>
+            <div class="backtestMetrics">
+              <div class="metricCard"><div class="muted">RÉSULTAT NET</div><div class="big">+10,35 R</div></div>
+              <div class="metricCard"><div class="muted">TRADES</div><div class="big">391</div></div>
+              <div class="metricCard"><div class="muted">TRADES / SEMAINE</div><div class="big">3,34</div></div>
+              <div class="metricCard"><div class="muted">RECUL MAXIMAL</div><div class="big">25,27 R</div></div>
+            </div>
+            <p class="small">À 100 $ de risque fixe par trade : environ +1 035 $ au total, avec un recul maximal de 2 527 $. Conversion illustrative de la simulation.</p>
+            <p class="small"><b>Avantage encore fragile.</b> Les coûts prévus sont inclus. Ajouter 0,05 R de coût par trade ferait passer le total à −9,20 R. Une des trois sous-périodes perd 17,97 R.</p>
+            <p class="small">Historique déjà utilisé en recherche, sans validation indépendante. Ce modèle n’est pas encore utilisé par les signaux du site. Environ 3,3 trades par semaine ne garantit pas une entrée chaque jour.</p>
+            <details class="inlineDetails">
+              <summary>Règles de cet essai</summary>
+              <p class="small">Niveau sur 8 M15 clôturées, cassure puis retest avec confirmation M5, EMA20/EMA50 alignées en M5 et M15. Spread maximal admis : 0,10 R. Stop structurel, cible 2 R et sortie à 16:55 New York au plus tard. Prix bid/ask historiques, glissement d’entrée de 0,05 ATR et pénalité supplémentaire de 0,05 R.</p>
+              <p class="small">Historique local étiqueté OANDA ; provenance non recertifiée indépendamment. Résultats enregistrés pour cette étude, sans recalcul automatique avec chaque nouvelle bougie.</p>
+            </details>
+          </div>
         </details>
       </section>
       <section class="card">
@@ -1910,6 +1989,8 @@
           "Chargement du test Day Trading M15 sur 12 mois…";
         $("btQuality").textContent =
           "L’analyse en direct reste disponible pendant le calcul.";
+        $("btVerdict").textContent = "Calcul du moteur actuel en cours…";
+        $("btVerdict").className = "small essentialHint";
         backtestPromise = fetchHistory("15m", 30000);
         try {
           backtestRows = await backtestPromise;
@@ -1919,6 +2000,8 @@
             throw Error("historique M15 de 12 mois incomplet");
           backtest(backtestRows);
         } catch (e) {
+          $("btVerdict").textContent = "Résultat du moteur indisponible — ouvrir les détails.";
+          $("btVerdict").className = "small essentialHint red";
           $("btStatus").textContent =
             "Backtest Day Trading indisponible · " + e.message;
           $("btQuality").textContent =
@@ -1934,6 +2017,8 @@
         const executableRatio =
           r.filter((x) => x.executable).length / Math.max(r.length, 1);
         if (executableRatio < 0.98) {
+          $("btVerdict").textContent = "Calcul bloqué : historique bid/ask incomplet.";
+          $("btVerdict").className = "small essentialHint red";
           $("btStatus").textContent =
             "Validation bloquée : historique bid/ask OANDA incomplet.";
           $("btQuality").textContent =
@@ -2293,6 +2378,7 @@
             ? "∞"
             : "—";
         $("dd").textContent = n ? dd.toFixed(1) + "R" : "—";
+        renderBacktestOverview({ n, pnl, dd, from: r[0].t, to: r[r.length - 1].t });
         const splitTime = r[0].t + (r[r.length - 1].t - r[0].t) * 0.75,
           strategyNames = [
             "PULLBACK TENDANCE",
@@ -2598,10 +2684,29 @@
             ? `Moteur live V10.20 · OANDA bid/ask · M15 avec contexte H1/4H sur ${(days / 365.25).toFixed(2)} an · ${n} trades · ${wins} TP1 · ${losses} SL · ${breakevens} BE · ${timeouts} sorties après 8 h · ${pnl.toFixed(1)}R net. ${strategySummary}`
           : "Aucun signal complet clôturé sur les bougies disponibles.";
         $("btQuality").textContent =
-          `Fréquence : ${signalsPerWeek.toFixed(1)}/semaine · ${signalsPerDay.toFixed(2)}/jour de marché · ${noSignalDays} jour(s) et ${noSignalWeeks} semaine(s) sans entrée. Qualité : ${quality}. Validation : 75 % développement en 3 blocs + purge 8 h + 25 % test final intact. Stratégies autorisées en direct : ${approvedStrategies.size ? [...approvedStrategies].join(", ") : "AUCUNE — MODE RECHERCHE"}. Sessions — ${sessionSummary || "aucune"}.`;
+          `Fréquence : ${signalsPerWeek.toFixed(1)}/semaine · ${signalsPerDay.toFixed(2)}/jour de marché · ${noSignalDays} jour(s) et ${noSignalWeeks} semaine(s) sans entrée. Qualité : ${quality}. Validation : 75 % développement en 3 blocs + purge 8 h + 25 % période de test. Stratégies autorisées en direct : ${approvedStrategies.size ? [...approvedStrategies].join(", ") : "AUCUNE — MODE RECHERCHE"}. Sessions — ${sessionSummary || "aucune"}.`;
         validationReady = true;
         backtestComputed = true;
         setTimeout(() => analyze(), 0);
+      }
+      function renderBacktestOverview({ n, pnl, dd, from, to }) {
+        const number = (value, digits = 1) => value.toLocaleString("fr-CA", {
+          minimumFractionDigits: digits, maximumFractionDigits: digits,
+        });
+        const date = (time) => new Date(time).toLocaleDateString("fr-CA", {
+          timeZone: "America/Toronto", day: "numeric", month: "short", year: "numeric",
+        });
+        $("btPeriod").textContent = `${date(from)} – ${date(to)} · Prix bid/ask, coûts simulés inclus`;
+        $("btNet").textContent = n ? `${pnl > 0 ? "+" : ""}${number(pnl)} R` : "—";
+        $("btNet").className = "big" + (n && pnl < 0 ? " red" : "");
+        $("btVerdict").textContent = !n ? "Aucun trade clôturé sur cette période."
+          : pnl < 0 ? "Résultat historique négatif."
+          : pnl > 0 ? "Gain historique simulé · solidité à confirmer."
+          : "Résultat historique à l’équilibre.";
+        $("btVerdict").className = "small essentialHint" + (n && pnl < 0 ? " red" : "");
+        $("btMoney").textContent = n
+          ? `Exemple à 100 $ de risque fixe par trade : ${pnl > 0 ? "+" : ""}${number(pnl * 100, 0)} $ au total · recul maximal ${number(dd * 100, 0)} $.`
+          : "1 R = le montant risqué au départ sur un trade.";
       }
       function draw(r) {
         const c = $("chartCanvas"),
@@ -2741,4 +2846,3 @@
     </script>
   </body>
 </html>
-
