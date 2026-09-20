@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#060a10" />
-    <title>Smart Gold V10.10 Forward Paper</title>
+    <title>Smart Gold V10.11 Research Reset</title>
     <style>
       :root {
         --bg: #05080d;
@@ -578,40 +578,45 @@
         </div>
       </section>
       <section class="card" id="momentumCandidateCard">
-        <div class="sectionTitle">CANDIDAT MOMENTUM · PAPER</div>
+        <div class="sectionTitle">RECHERCHE BUY + SELL · VALIDATION 3 ANS</div>
         <div class="small">
-          SELL seulement · cassure H1 confirmée · volatilité montante · Londres/New York.
+          Le moteur ne privilégie aucun sens. Il cherche une continuation avec tendance
+          ou un retracement contre-tendance confirmé, puis conserve uniquement les
+          configurations rentables hors échantillon après spread.
         </div>
         <div class="dashboard" style="margin-top: 8px">
           <div class="metricCard">
-            <div class="muted">ÉTAT MAINTENANT</div>
-            <div id="momentumState" class="big gold">ANALYSE…</div>
-            <div id="momentumDetails" class="small">Chargement M5/H1…</div>
+            <div class="muted">SELL BREAKOUT</div>
+            <div class="big red">REJETÉ</div>
+            <div class="small">Résultat instable sur trois ans · avantage récent non généralisable.</div>
           </div>
           <div class="metricCard">
-            <div class="muted">PLAN PAPER</div>
-            <div id="momentumPlan" class="big">—</div>
-            <div id="momentumLevels" class="small">Aucun ordre réel autorisé.</div>
+            <div class="muted">BUY BREAKOUT</div>
+            <div class="big red">REJETÉ</div>
+            <div class="small">Développement −20,15R · test final −22,92R.</div>
           </div>
         </div>
-        <div class="paperStats" aria-label="Résultats forward paper">
-          <div class="paperStat"><b id="paperTrades">0</b><span class="muted">TRADES</span></div>
-          <div class="paperStat"><b id="paperWinRate">—</b><span class="muted">WIN RATE</span></div>
-          <div class="paperStat"><b id="paperPf">—</b><span class="muted">PF</span></div>
-          <div class="paperStat"><b id="paperPnl">0R</b><span class="muted">NET</span></div>
-        </div>
-        <div id="paperGate" class="small essentialHint">
-          Forward test : collecte 0/30 · aucun passage au réel.
+        <div class="small essentialHint">
+          Prochaine recherche : sweep de liquidité → changement de structure →
+          retracement confirmé → cible de liquidité. BUY et SELL sont testés séparément.
+          Aucun ordre automatique autorisé.
         </div>
         <details class="inlineDetails">
-          <summary>Pourquoi ce candidat?</summary>
+          <summary>Pourquoi les anciens signaux sont bloqués?</summary>
           <div class="small">
-            Développement : 34 trades, 64,7 % gagnants, +9,32R, PF 1,76.
-            Test final intact : 14 trades, 71,4 %, +5,72R, PF 2,40.
-            L’optimisation mensuelle libre a échoué : les règles restent donc fixes
-            et le suivi demeure paper.
+            Le SELL paraissait positif sur une seule année, mais ses périodes de
+            développement antérieures étaient négatives. Le BUY symétrique échoue
+            également, et aucun mois walk-forward n’a satisfait les critères.
+            Le programme préfère donc attendre plutôt que présenter un faux avantage.
           </div>
         </details>
+        <div style="display:none" aria-hidden="true">
+          <span id="momentumState"></span><span id="momentumDetails"></span>
+          <span id="momentumPlan"></span><span id="momentumLevels"></span>
+          <span id="paperTrades"></span><span id="paperWinRate"></span>
+          <span id="paperPf"></span><span id="paperPnl"></span>
+          <span id="paperGate"></span>
+        </div>
       </section>
       <details class="card advancedPanel"><summary>Détails du Reliability Lab</summary><div class="advancedBody">
         <div class="sectionTitle">RELIABILITY LAB · WIN RATE + ESPÉRANCE</div>
@@ -867,7 +872,7 @@
         </div>
       </section>
       <footer class="footer">
-        <span>Smart Gold V10.10 Forward Paper · créé pour Maxime Masson</span
+        <span>Smart Gold V10.11 Research Reset · créé pour Maxime Masson</span
         ><span class="green">● Signal sécurisé</span>
       </footer>
     </main>
@@ -1629,6 +1634,7 @@
           risingVolatility = hp.A[k] > hp.A[Math.max(0, k - 24)],
           liquidSession = ["LONDRES", "NEW YORK"].includes(marketSession(m5[i].t)),
           active =
+            false &&
             breakout &&
             trend &&
             risingVolatility &&
@@ -2581,7 +2587,7 @@
           )
           .join("");
         $("btStatus").textContent = n
-            ? `V10.10 Forward Paper · OANDA bid/ask · M15 avec contexte H1/4H sur ${(days / 365.25).toFixed(2)} an · ${n} trades · ${wins} TP1 · ${losses} SL · ${breakevens} BE · ${timeouts} sorties après 8 h · ${pnl.toFixed(1)}R net. ${strategySummary}`
+            ? `V10.11 Research Reset · OANDA bid/ask · M15 avec contexte H1/4H sur ${(days / 365.25).toFixed(2)} an · ${n} trades · ${wins} TP1 · ${losses} SL · ${breakevens} BE · ${timeouts} sorties après 8 h · ${pnl.toFixed(1)}R net. ${strategySummary}`
           : "Aucun signal complet clôturé sur les bougies disponibles.";
         $("btQuality").textContent =
           `Fréquence : ${signalsPerWeek.toFixed(1)}/semaine · ${signalsPerDay.toFixed(2)}/jour de marché · ${noSignalDays} jour(s) et ${noSignalWeeks} semaine(s) sans entrée. Qualité : ${quality}. Validation : 75 % développement en 3 blocs + purge 8 h + 25 % test final intact. Stratégies autorisées en direct : ${approvedStrategies.size ? [...approvedStrategies].join(", ") : "AUCUNE — MODE RECHERCHE"}. Sessions — ${sessionSummary || "aucune"}.`;
