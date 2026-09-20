@@ -82,9 +82,60 @@ const clocks = {
   ny: new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", hour: "2-digit", hourCycle: "h23" }),
   london: new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", hour: "2-digit", hourCycle: "h23" }),
 };
-function liquid(t) {
+function sessionAt(t) {
   const ny = +clocks.ny.format(new Date(t)), london = +clocks.london.format(new Date(t));
-  return (ny >= 8 && ny < 13) || (london >= 8 && london < 13);
+  if (ny >= 8 && ny < 13) return "NY";
+  if (london >= 8 && london < 13) return "LONDON";
+  return "OTHER";
+}
+const liquid = t => sessionAt(t) !== "OTHER";
+
+// Fixed before looking at the result: block new entries from 30 minutes before
+// until 45 minutes after a scheduled high-impact USD release. Release times
+// are expressed in America/New_York so daylight-saving changes are preserved.
+const NEWS_WINDOW = { before: 30 * 60000, after: 45 * 60000 };
+function newYorkTime(date, hour, minute) {
+  const [year, month, day] = date.split("-").map(Number);
+  const desired = Date.UTC(year, month - 1, day, hour, minute);
+  let utc = desired;
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23",
+  });
+  for (let pass = 0; pass < 2; pass++) {
+    const parts = Object.fromEntries(formatter.formatToParts(new Date(utc)).map(x => [x.type, x.value]));
+    const rendered = Date.UTC(+parts.year, +parts.month - 1, +parts.day, +parts.hour, +parts.minute, +parts.second);
+    utc += desired - rendered;
+  }
+  return utc;
+}
+
+const bls830Dates = [
+  "2023-10-06", "2023-10-12", "2023-11-03", "2023-11-14", "2023-12-08", "2023-12-12",
+  "2024-01-05", "2024-01-11", "2024-02-02", "2024-02-13", "2024-03-08", "2024-03-12",
+  "2024-04-05", "2024-04-10", "2024-05-03", "2024-05-15", "2024-06-07", "2024-06-12",
+  "2024-07-05", "2024-07-11", "2024-08-02", "2024-08-14", "2024-09-06", "2024-09-11",
+  "2024-10-04", "2024-10-10", "2024-11-01", "2024-11-13", "2024-12-06", "2024-12-11",
+  "2025-01-10", "2025-01-15", "2025-02-07", "2025-02-12", "2025-03-07", "2025-03-12",
+  "2025-04-04", "2025-04-10", "2025-05-02", "2025-05-13", "2025-06-06", "2025-06-11",
+  "2025-07-03", "2025-07-15", "2025-08-01", "2025-08-12", "2025-09-05", "2025-09-11",
+  "2025-10-24", "2025-11-20", "2025-12-16", "2025-12-18",
+  "2026-01-09", "2026-01-13", "2026-02-11", "2026-02-13", "2026-03-06", "2026-03-11",
+  "2026-04-03", "2026-04-10", "2026-05-08", "2026-05-12", "2026-06-05", "2026-06-10",
+  "2026-07-02", "2026-07-14", "2026-08-07", "2026-08-12", "2026-09-04", "2026-09-11",
+];
+const fomcDates = [
+  "2023-09-20", "2023-11-01", "2023-12-13",
+  "2024-01-31", "2024-03-20", "2024-05-01", "2024-06-12", "2024-07-31", "2024-09-18", "2024-11-07", "2024-12-18",
+  "2025-01-29", "2025-03-19", "2025-05-07", "2025-06-18", "2025-07-30", "2025-09-17", "2025-10-29", "2025-12-10",
+  "2026-01-28", "2026-03-18", "2026-04-29", "2026-06-17", "2026-07-29", "2026-09-16",
+];
+const newsEvents = [
+  ...bls830Dates.map(date => ({ kind: "CPI_NFP", t: newYorkTime(date, 8, 30) })),
+  ...fomcDates.map(date => ({ kind: "FOMC", t: newYorkTime(date, 14, 0) })),
+].sort((a, b) => a.t - b.t);
+function newsAt(t) {
+  return newsEvents.find(event => t >= event.t - NEWS_WINDOW.before && t <= event.t + NEWS_WINDOW.after) || null;
 }
 
 function metrics(trades) {
@@ -186,11 +237,21 @@ for (const targetR of [1.5, 2])
 for (const exitMode of ["FIXED", "BE1"])
 for (const contextFilter of ["PD", "VOLUME", "PD_VOLUME"])
   configs.push({ family: "CONTINUATION", side, sweepBars, confirmBars, targetR, exitMode, contextFilter });
+// Session isolation: same continuation logic, tested separately in London and New York.
+for (const side of [1, -1])
+for (const sweepBars of [12, 24])
+for (const confirmBars of [3, 6])
+for (const targetR of [1.5, 2])
+for (const exitMode of ["FIXED", "BE1"])
+for (const sessionFilter of ["LONDON", "NY"])
+  configs.push({ family: "CONTINUATION", side, sweepBars, confirmBars, targetR, exitMode, sessionFilter });
 
 function run(cfg, stress = {}) {
   const trades = [];
+  const blockedNews = { CPI_NFP: 0, FOMC: 0 };
   for (let i = 60; i < rows.length - cfg.confirmBars - 2; i++) {
     if (!p5.a[i] || !liquid(rows[i].t)) continue;
+    if (cfg.sessionFilter && sessionAt(rows[i].t) !== cfg.sessionFilter) continue;
     const b15 = bias(p15, map15[i]), b1 = bias(p1, map1[i]), b4 = bias(p4, map4[i]);
     // A continuation requires H1/H4 agreement. A shorter retracement only needs
     // a clear H1 bias to trade against; requiring an already-reversed M15 trend
@@ -229,6 +290,10 @@ function run(cfg, stress = {}) {
     }
     const entryIndex = confirm + 1 + (stress.delayBars || 0);
     if (confirm < 0 || entryIndex >= rows.length || !liquid(rows[entryIndex].t)) continue;
+    if (stress.newsFilter) {
+      const event = newsAt(rows[entryIndex].t);
+      if (event) { blockedNews[event.kind]++; continue; }
+    }
     if (cfg.contextFilter?.includes("VOLUME")) {
       const volumeMean = rows.slice(Math.max(0, confirm - 20), confirm)
         .reduce((sum, x) => sum + x.v, 0) / Math.min(20, confirm);
@@ -255,7 +320,7 @@ function run(cfg, stress = {}) {
   const dev = trades.filter(x => x.t < split - purge), test = trades.filter(x => x.t >= split);
   const devStart = rows[0].t, devEnd = split - purge, width = (devEnd - devStart) / 3;
   const folds = [0, 1, 2].map(n => metrics(dev.filter(x => x.t >= devStart + n * width && x.t < (n === 2 ? devEnd : devStart + (n + 1) * width))));
-  return { cfg, dev: metrics(dev), test: metrics(test), folds, positiveFolds: folds.filter(x => x.n >= 8 && x.pf >= 1.1 && x.exp > 0).length, trades };
+  return { cfg, dev: metrics(dev), test: metrics(test), folds, positiveFolds: folds.filter(x => x.n >= 8 && x.pf >= 1.1 && x.exp > 0).length, trades, blockedNews };
 }
 
 const results = configs.map(run);
@@ -301,6 +366,25 @@ const stressTests = [
   const x = run(candidateCfg, s.options);
   return { name: s.name, dev: x.dev, test: x.test, positiveFolds: x.positiveFolds };
 });
+const nyBuyCfg = { family: "CONTINUATION", side: 1, sweepBars: 12, confirmBars: 6, targetR: 2, exitMode: "FIXED", sessionFilter: "NY" };
+const nyBuyStress = [
+  { name: "BASE", options: {} },
+  { name: "RETARD_5M", options: { delayBars: 1 } },
+  { name: "GLISSEMENT_0.05_ATR", options: { slipAtr: 0.05 } },
+  { name: "RETARD_GLISSEMENT_COUT", options: { delayBars: 1, slipAtr: 0.05, extraCost: 0.03 } },
+].map(s => {
+  const x = run(nyBuyCfg, s.options);
+  return { name: s.name, dev: x.dev, test: x.test, positiveFolds: x.positiveFolds };
+});
+const nyBuyNewsFilter = [
+  { name: "FILTRE_NEWS", options: { newsFilter: true } },
+  { name: "FILTRE_NEWS_RETARD_5M", options: { newsFilter: true, delayBars: 1 } },
+  { name: "FILTRE_NEWS_GLISSEMENT_0.05_ATR", options: { newsFilter: true, slipAtr: 0.05 } },
+  { name: "FILTRE_NEWS_STRESS_COMPLET", options: { newsFilter: true, delayBars: 1, slipAtr: 0.05, extraCost: 0.03 } },
+].map(s => {
+  const x = run(nyBuyCfg, s.options);
+  return { name: s.name, dev: x.dev, test: x.test, positiveFolds: x.positiveFolds, blockedNews: x.blockedNews };
+});
 console.log(JSON.stringify({
   bars: rows.length,
   start: new Date(rows[0].t).toISOString(),
@@ -317,8 +401,19 @@ console.log(JSON.stringify({
       .sort((a, b) => b.positiveFolds - a.positiveFolds || b.dev.exp - a.dev.exp);
     return compact(subset[0]);
   })),
+  sessionBest: [1, -1].flatMap(side => ["LONDON", "NY"].map(sessionFilter => {
+    const subset = results.filter(x => x.cfg.family === "CONTINUATION" && x.cfg.side === side && x.cfg.sessionFilter === sessionFilter)
+      .sort((a, b) => Number(passesDev(b)) - Number(passesDev(a)) || b.positiveFolds - a.positiveFolds || b.dev.exp - a.dev.exp);
+    return compact(subset[0]);
+  })),
   walkForwardSelected: wf.filter(x => x.cfg).length,
   walkForwardPeriods: wf.length,
   walkForwardTotal: metrics(wfTrades),
   stressTests,
+  nyBuyStress,
+  newsFilter: {
+    fixedWindowMinutes: { before: 30, after: 45 },
+    officialEvents: { cpiNfp: bls830Dates.length, fomc: fomcDates.length },
+    tests: nyBuyNewsFilter,
+  },
 }, null, 2));
