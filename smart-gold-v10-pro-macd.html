@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#060a10" />
-    <title>Smart Gold V10.4 Pro Execution</title>
+    <title>Smart Gold V10.5 Pro Pattern Lab</title>
     <style>
       :root {
         --bg: #05080d;
@@ -433,7 +433,7 @@
         <div class="brand">
           <div class="logo">Au</div>
           <div>
-            <div class="title">Smart Gold V10.4 Pro 👑</div>
+            <div class="title">Smart Gold V10.5 Pro 👑</div>
             <div class="sub">XAU/USD · ANALYSE & ENTRÉES · Maxime Masson</div>
             <div class="small">
               DISCIPLINE · ANALYSE · PROTECTION DU CAPITAL
@@ -506,6 +506,31 @@
         <div class="strategyItem">
           <div class="muted">ALIGNEMENT MULTI-TF</div>
           <b id="mtfDetail">4H — · 1H — · TF —</b>
+        </div>
+      </section>
+      <section class="card">
+        <div class="sectionTitle">PATTERN LAB · COMPARATEUR R:R</div>
+        <div class="small">
+          Le profil est choisi uniquement sur les premiers 75 % des données,
+          puis vérifié sans ajustement sur les derniers 25 %.
+        </div>
+        <div class="tableWrap" aria-label="Comparaison hors échantillon des profils de sortie">
+          <table class="validationTable">
+            <thead>
+              <tr>
+                <th>STRATÉGIE</th>
+                <th>R:R CHOISI SUR DÉVELOPPEMENT</th>
+                <th>DÉVELOPPEMENT</th>
+                <th>TEST FINAL</th>
+                <th>TP TEST</th>
+                <th>MFE / MAE MÉDIANS</th>
+                <th>VERDICT</th>
+              </tr>
+            </thead>
+            <tbody id="rrLabRows">
+              <tr><td colspan="7" class="muted">Analyse des sorties en attente…</td></tr>
+            </tbody>
+          </table>
         </div>
       </section>
       <section class="card">
@@ -729,7 +754,7 @@
         </div>
       </section>
       <footer class="footer">
-        <span>Smart Gold V10.4 Pro · créé pour Maxime Masson</span
+        <span>Smart Gold V10.5 Pro · créé pour Maxime Masson</span
         ><span class="green">● Signal sécurisé</span>
       </footer>
     </main>
@@ -1545,6 +1570,8 @@
             "Aucune stratégie autorisée tant que les prix d’exécution réels ne sont pas disponibles.";
           $("strategyValidationRows").innerHTML =
             '<tr><td colspan="8" class="red">Prix bid/ask incomplets — MODE RECHERCHE</td></tr>';
+          $("rrLabRows").innerHTML =
+            '<tr><td colspan="7" class="red">Comparaison R:R bloquée sans prix bid/ask complets.</td></tr>';
           backtestComputed = true;
           return;
         }
@@ -1579,6 +1606,73 @@
             if (hour < 12) return "LONDRES";
             if (hour < 17) return "NEW YORK";
             return "HORS SESSION";
+          },
+          simulateProfile = (startIndex, side, entry, risk, targetR) => {
+            const sl = entry - side * risk,
+              tp = entry + side * risk * targetR,
+              beTrigger = entry + side * risk,
+              lastBar = Math.min(r.length - 1, startIndex + maxHoldBars);
+            let beArmed = false,
+              outcomeType = "TIMEOUT",
+              outcomeR = 0,
+              maxFavorableR = 0,
+              maxAdverseR = 0;
+            for (let j = startIndex; j <= lastBar; j++) {
+              const exitLow = side === 1 ? r[j].bl : r[j].al,
+                exitHigh = side === 1 ? r[j].bh : r[j].ah,
+                favorableR =
+                  side === 1
+                    ? (exitHigh - entry) / risk
+                    : (entry - exitLow) / risk,
+                adverseR =
+                  side === 1
+                    ? (entry - exitLow) / risk
+                    : (exitHigh - entry) / risk,
+                hitSL = side === 1 ? exitLow <= sl : exitHigh >= sl,
+                hitTP = side === 1 ? exitHigh >= tp : exitLow <= tp,
+                hitBE =
+                  beArmed &&
+                  (side === 1 ? exitLow <= entry : exitHigh >= entry),
+                armsBE =
+                  side === 1
+                    ? exitHigh >= beTrigger
+                    : exitLow <= beTrigger;
+              maxFavorableR = Math.max(maxFavorableR, favorableR);
+              maxAdverseR = Math.max(maxAdverseR, adverseR);
+              if (hitSL && hitTP) {
+                outcomeType = "SL";
+                outcomeR = -1 - costR;
+                break;
+              }
+              if (hitBE && hitTP) {
+                outcomeType = "BE";
+                outcomeR = -costR;
+                break;
+              }
+              if (hitSL) {
+                outcomeType = "SL";
+                outcomeR = -1 - costR;
+                break;
+              }
+              if (hitBE) {
+                outcomeType = "BE";
+                outcomeR = -costR;
+                break;
+              }
+              if (hitTP) {
+                outcomeType = "TP1";
+                outcomeR = targetR - costR;
+                break;
+              }
+              if (armsBE) beArmed = true;
+              if (j === lastBar) {
+                const exitPrice = side === 1 ? r[j].bc : r[j].ac;
+                outcomeR =
+                  clamp(((exitPrice - entry) * side) / risk, -1, targetR) -
+                  costR;
+              }
+            }
+            return { outcomeType, outcomeR, maxFavorableR, maxAdverseR };
           };
         const pack = buildPack(r),
           h1 = aggregateBars(r, 60 * 60000),
@@ -1588,6 +1682,7 @@
           strategyStats = new Map(),
           sessionStats = new Map(),
           tradeRecords = [],
+          profileRecords = [],
           tradingDays = new Set(r.map((x) => dayKey(x.t))),
           observedWeeks = new Set(r.map((x) => weekKey(x.t))),
           signalDays = new Set(),
@@ -1624,6 +1719,21 @@
             beTrigger = entry + side * signal.risk,
             entryTime = r[i + 1].t,
             session = sessionName(entryTime);
+          for (const targetR of [1.5, 2, 3]) {
+            const profile = simulateProfile(
+              i + 1,
+              side,
+              entry,
+              signal.risk,
+              targetR,
+            );
+            profileRecords.push({
+              strategy: signal.strategy,
+              targetR,
+              entryTime,
+              ...profile,
+            });
+          }
           signalDays.add(dayKey(entryTime));
           signalWeeks.add(weekKey(entryTime));
           let out = 0,
@@ -1767,7 +1877,17 @@
             maxDrawdown,
             maxLossStreak,
           };
-        };
+        },
+          medianOf = (values) => {
+            const sorted = values
+              .filter(Number.isFinite)
+              .sort((a, b) => a - b);
+            if (!sorted.length) return 0;
+            const middle = Math.floor(sorted.length / 2);
+            return sorted.length % 2
+              ? sorted[middle]
+              : (sorted[middle - 1] + sorted[middle]) / 2;
+          };
         const n = wins + losses + breakevens + timeouts,
           days = r.length > 1 ? (r[r.length - 1].t - r[0].t) / 86400000 : 0,
           weeks = Math.max(days / 7, 1),
@@ -1859,8 +1979,83 @@
             </tr>`;
           })
           .join("");
+        const rrLabResults = strategyNames.map((name) => {
+          const candidates = [1.5, 2, 3].map((targetR) => {
+            const records = profileRecords.filter(
+                (x) => x.strategy === name && x.targetR === targetR,
+              ),
+              developmentRecords = records.filter(
+                (x) => x.entryTime < splitTime,
+              ),
+              finalRecords = records.filter(
+                (x) => x.entryTime >= splitTime,
+              );
+            return {
+              targetR,
+              development: metricsFor(developmentRecords),
+              finalTest: metricsFor(finalRecords),
+              finalRecords,
+            };
+          });
+          candidates.sort(
+            (a, b) =>
+              Number(b.development.trades >= 35) -
+                Number(a.development.trades >= 35) ||
+              b.development.expectancy - a.development.expectancy,
+          );
+          const selected = candidates[0],
+            robust =
+              selected.development.trades >= 35 &&
+              selected.development.pnl > 0 &&
+              selected.development.pf >= 1.25 &&
+              selected.finalTest.trades >= 12 &&
+              selected.finalTest.pnl > 0 &&
+              selected.finalTest.pf >= 1.15 &&
+              selected.finalTest.expectancy > 0,
+            medianMfe = medianOf(
+              selected.finalRecords.map((x) => x.maxFavorableR),
+            ),
+            medianMae = medianOf(
+              selected.finalRecords.map((x) => x.maxAdverseR),
+            );
+          return { name, ...selected, robust, medianMfe, medianMae };
+        });
+        $("rrLabRows").innerHTML = rrLabResults
+          .map(
+            ({
+              name,
+              targetR,
+              development,
+              finalTest,
+              robust,
+              medianMfe,
+              medianMae,
+            }) => {
+              const insufficient =
+                  development.trades < 35 || finalTest.trades < 12,
+                verdict = robust
+                  ? "ROBUSTE HORS ÉCHANTILLON"
+                  : insufficient
+                    ? "PLUS DE DONNÉES REQUISES"
+                    : "NON CONFIRMÉ",
+                verdictClass = robust ? "green" : "red",
+                testHitRate = finalTest.trades
+                  ? (finalTest.wins / finalTest.trades) * 100
+                  : 0;
+              return `<tr>
+                <td><b>${name}</b></td>
+                <td><b>1:${targetR.toFixed(1)}</b></td>
+                <td>${metricText(development)}</td>
+                <td>${metricText(finalTest)}</td>
+                <td>${testHitRate.toFixed(1)}%</td>
+                <td>${medianMfe.toFixed(2)}R / ${medianMae.toFixed(2)}R</td>
+                <td><span class="validationBadge ${verdictClass}">${verdict}</span></td>
+              </tr>`;
+            },
+          )
+          .join("");
         $("btStatus").textContent = n
-            ? `V10.4 Exécution · OANDA bid/ask · M15 avec contexte H1/4H sur ${(days / 365.25).toFixed(2)} an · ${n} trades · ${wins} TP1 · ${losses} SL · ${breakevens} BE · ${timeouts} sorties après 8 h · ${pnl.toFixed(1)}R net. ${strategySummary}`
+            ? `V10.5 Pattern Lab · OANDA bid/ask · M15 avec contexte H1/4H sur ${(days / 365.25).toFixed(2)} an · ${n} trades · ${wins} TP1 · ${losses} SL · ${breakevens} BE · ${timeouts} sorties après 8 h · ${pnl.toFixed(1)}R net. ${strategySummary}`
           : "Aucun signal complet clôturé sur les bougies disponibles.";
         $("btQuality").textContent =
           `Fréquence : ${signalsPerWeek.toFixed(1)}/semaine · ${signalsPerDay.toFixed(2)}/jour de marché · ${noSignalDays} jour(s) et ${noSignalWeeks} semaine(s) sans entrée. Qualité : ${quality}. Validation : 75 % développement + 25 % test final intact. Stratégies autorisées en direct : ${approvedStrategies.size ? [...approvedStrategies].join(", ") : "AUCUNE — MODE RECHERCHE"}. Sessions — ${sessionSummary || "aucune"}.`;
