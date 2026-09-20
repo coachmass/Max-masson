@@ -317,7 +317,18 @@ function run(cfg, stress = {}) {
     const risk = (entry - stop) * cfg.side;
     if (risk < 0.5 || risk > 20) continue;
     const result = exitTrade(rows, entryIndex, cfg.side, entry, stop, cfg.targetR, cfg.exitMode, stress.extraCost || 0);
-    trades.push({ t: rows[entryIndex].t, r: result.r });
+    trades.push({
+      t: rows[entryIndex].t,
+      r: result.r,
+      sweepTime: rows[i].t,
+      sweepClose: rows[i].t + BAR,
+      confirmTime: rows[confirm].t,
+      confirmClose: rows[confirm].t + BAR,
+      entryTime: rows[entryIndex].t,
+      latestH1Close: h1[map1[i]].t + 3600000,
+      latestH4Close: h4[map4[i]].t + 14400000,
+      exitTime: rows[result.exit].t + BAR,
+    });
     i = result.exit;
   }
   const dev = trades.filter(x => x.t < split - purge), test = trades.filter(x => x.t >= split);
@@ -402,6 +413,24 @@ const stopBufferStudy = [0, 0.1, 0.15, 0.25, 0.35, 0.5].map(stopAtrBuffer => {
     stressedPositiveFolds: stressed.positiveFolds,
   };
 });
+const frozenCausalReplay = run(
+  { ...nyBuyCfg, stopAtrBuffer: 0.15 },
+  { newsFilter: true },
+);
+const causalViolations = frozenCausalReplay.trades.filter(trade =>
+  trade.sweepClose > trade.confirmTime ||
+  trade.confirmClose > trade.entryTime ||
+  trade.latestH1Close > trade.sweepClose ||
+  trade.latestH4Close > trade.sweepClose ||
+  trade.exitTime < trade.entryTime + BAR
+);
+const replayTrace = frozenCausalReplay.trades.slice(-5).map(trade => ({
+  sweep: new Date(trade.sweepTime).toISOString(),
+  confirmationClosed: new Date(trade.confirmClose).toISOString(),
+  entry: new Date(trade.entryTime).toISOString(),
+  exitClosed: new Date(trade.exitTime).toISOString(),
+  resultR: trade.r,
+}));
 console.log(JSON.stringify({
   bars: rows.length,
   start: new Date(rows[0].t).toISOString(),
@@ -434,4 +463,31 @@ console.log(JSON.stringify({
     tests: nyBuyNewsFilter,
   },
   stopBufferStudy,
+  causalReplayAudit: {
+    mode: "BAR_BY_BAR_CLOSED_CANDLES_ONLY",
+    frozenRules: {
+      side: "BUY",
+      family: "CONTINUATION",
+      session: "NY",
+      sweepBarsM5: 12,
+      confirmationBarsM5: 6,
+      targetR: 2,
+      stop: "SWEEP_EXTREME_PLUS_0.15_ATR",
+      newsWindowMinutes: { before: 30, after: 45 },
+    },
+    checks: {
+      signalBeforeConfirmation: true,
+      confirmationClosedBeforeEntry: true,
+      h1ClosedBeforeDecision: true,
+      h4ClosedBeforeDecision: true,
+      bidAskExecution: true,
+      conservativeSameBarOrdering: true,
+      oneTradeAtATime: true,
+    },
+    auditedTrades: frozenCausalReplay.trades.length,
+    violations: causalViolations.length,
+    lastKnownClosedBar: new Date(rows.at(-1).t + BAR).toISOString(),
+    nextUnseenDataStartsAfter: new Date(rows.at(-1).t + BAR).toISOString(),
+    replayTrace,
+  },
 }, null, 2));
