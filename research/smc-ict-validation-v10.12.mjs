@@ -22,6 +22,7 @@ async function fetchHistory(target = 220000) {
       o: +q.open[i], h: +q.high[i], l: +q.low[i], c: +q.close[i],
       bo: +q.bidOpen[i], bh: +q.bidHigh[i], bl: +q.bidLow[i], bc: +q.bidClose[i],
       ao: +q.askOpen[i], ah: +q.askHigh[i], al: +q.askLow[i], ac: +q.askClose[i],
+      v: +q.volume[i],
     })).filter(x => Object.values(x).every(Number.isFinite));
     if (!page.length) break;
     for (const x of page) if (!seen.has(x.t)) { seen.add(x.t); all.push(x); }
@@ -100,6 +101,35 @@ function exitTrade(rows, start, side, entry, stop, targetR, exitMode, extraCost 
   const target = entry + side * risk * targetR;
   let sl = stop, favorable = entry;
   const last = Math.min(rows.length - 1, start + HOLD);
+  if (exitMode === "PARTIAL12") {
+    const tp1 = entry + side * risk;
+    const tp2 = entry + side * risk * 2;
+    let partial = false;
+    for (let j = start; j <= last; j++) {
+      const low = side === 1 ? rows[j].bl : rows[j].al;
+      const high = side === 1 ? rows[j].bh : rows[j].ah;
+      if (!partial) {
+        const hitSL = side === 1 ? low <= stop : high >= stop;
+        const hitTP1 = side === 1 ? high >= tp1 : low <= tp1;
+        // Conservative ordering when both levels occur inside one M5 candle.
+        if (hitSL) return { r: -1.02 - extraCost, exit: j };
+        if (hitTP1) partial = true;
+      }
+      if (partial) {
+        const hitBE = side === 1 ? low <= entry : high >= entry;
+        const hitTP2 = side === 1 ? high >= tp2 : low <= tp2;
+        if (hitBE && hitTP2) return { r: 0.48 - extraCost, exit: j };
+        if (hitBE) return { r: 0.48 - extraCost, exit: j };
+        if (hitTP2) return { r: 1.48 - extraCost, exit: j };
+      }
+    }
+    const close = side === 1 ? rows[last].bc : rows[last].ac;
+    const rawR = ((close - entry) * side) / risk;
+    const markedR = partial
+      ? 0.5 + 0.5 * Math.max(0, Math.min(2, rawR))
+      : Math.max(-1, Math.min(1, rawR));
+    return { r: markedR - 0.02 - extraCost, exit: last };
+  }
   for (let j = start; j <= last; j++) {
     const low = side === 1 ? rows[j].bl : rows[j].al;
     const high = side === 1 ? rows[j].bh : rows[j].ah;
@@ -140,8 +170,22 @@ for (const side of [1, -1])
 for (const sweepBars of [12, 24])
 for (const confirmBars of [3, 6])
 for (const targetR of family === "CONTINUATION" ? [1.5, 2] : [1, 1.5])
+for (const exitMode of ["FIXED", "BE1", "PARTIAL12"])
+  if (exitMode !== "PARTIAL12" || targetR === 2)
+    configs.push({ family, side, sweepBars, confirmBars, targetR, exitMode });
+for (const side of [1, -1])
+for (const sweepBars of [12, 24])
+for (const confirmBars of [3, 6])
+  configs.push({ family: "RETRACEMENT", side, sweepBars, confirmBars, targetR: 2, exitMode: "PARTIAL12" });
+// Predeclared entry filters: location in the recent range and/or relative M5 volume.
+// These are tested only on continuation entries to avoid multiplying weak families.
+for (const side of [1, -1])
+for (const sweepBars of [12, 24])
+for (const confirmBars of [3, 6])
+for (const targetR of [1.5, 2])
 for (const exitMode of ["FIXED", "BE1"])
-  configs.push({ family, side, sweepBars, confirmBars, targetR, exitMode });
+for (const contextFilter of ["PD", "VOLUME", "PD_VOLUME"])
+  configs.push({ family: "CONTINUATION", side, sweepBars, confirmBars, targetR, exitMode, contextFilter });
 
 function run(cfg, stress = {}) {
   const trades = [];
@@ -164,6 +208,14 @@ function run(cfg, stress = {}) {
       ? rows[i].l < level && rows[i].c > level
       : rows[i].h > level && rows[i].c < level;
     if (!swept) continue;
+    if (cfg.contextFilter?.includes("PD")) {
+      const range = rows.slice(Math.max(0, i - 144), i);
+      const rangeLow = Math.min(...range.map(x => x.l));
+      const rangeHigh = Math.max(...range.map(x => x.h));
+      const position = (rows[i].c - rangeLow) / (rangeHigh - rangeLow || 1);
+      const inValueArea = cfg.side === 1 ? position <= 0.4 : position >= 0.6;
+      if (!inValueArea) continue;
+    }
     const sweepExtreme = cfg.side === 1 ? rows[i].l : rows[i].h;
     const localStructure = cfg.side === 1
       ? Math.max(...rows.slice(i - 3, i + 1).map(x => x.h))
@@ -177,6 +229,11 @@ function run(cfg, stress = {}) {
     }
     const entryIndex = confirm + 1 + (stress.delayBars || 0);
     if (confirm < 0 || entryIndex >= rows.length || !liquid(rows[entryIndex].t)) continue;
+    if (cfg.contextFilter?.includes("VOLUME")) {
+      const volumeMean = rows.slice(Math.max(0, confirm - 20), confirm)
+        .reduce((sum, x) => sum + x.v, 0) / Math.min(20, confirm);
+      if (!(rows[confirm].v >= volumeMean * 1.15)) continue;
+    }
     // Continuations need full M15 agreement. Retracements only need price to
     // reclaim/lose the last completed M15 EMA20 after the M5 sweep + BOS.
     const entryM15 = bias(p15, map15[confirm]);
@@ -253,6 +310,11 @@ console.log(JSON.stringify({
   familySide: ["CONTINUATION", "RETRACEMENT"].flatMap(family => [1, -1].map(side => {
     const subset = results.filter(x => x.cfg.family === family && x.cfg.side === side)
       .sort((a, b) => Number(passesDev(b)) - Number(passesDev(a)) || b.positiveFolds - a.positiveFolds || b.dev.exp - a.dev.exp);
+    return compact(subset[0]);
+  })),
+  partialBest: ["CONTINUATION", "RETRACEMENT"].flatMap(family => [1, -1].map(side => {
+    const subset = results.filter(x => x.cfg.family === family && x.cfg.side === side && x.cfg.exitMode === "PARTIAL12")
+      .sort((a, b) => b.positiveFolds - a.positiveFolds || b.dev.exp - a.dev.exp);
     return compact(subset[0]);
   })),
   walkForwardSelected: wf.filter(x => x.cfg).length,
