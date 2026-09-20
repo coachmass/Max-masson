@@ -14,7 +14,7 @@ export default async (req: Request) => {
   const count = Math.min(5000, Math.max(80, Number(u.searchParams.get("count")) || 5000));
   const to = u.searchParams.get("to");
   const endpoint = new URL("https://api-fxtrade.oanda.com/v3/instruments/XAU_USD/candles");
-  endpoint.searchParams.set("price","M");
+  endpoint.searchParams.set("price","MBA");
   endpoint.searchParams.set("granularity",granularity);
   endpoint.searchParams.set("count",String(count));
   if (to) endpoint.searchParams.set("to",to);
@@ -28,16 +28,20 @@ export default async (req: Request) => {
   }
 
   const data:any = await upstream.json();
-  const candles = (data.candles || []).filter((x:any)=>x?.mid && x.complete === true);
+  const candles = (data.candles || []).filter((x:any)=>x?.mid && x?.bid && x?.ask && x.complete === true);
   const timestamp:number[] = [];
   const open:number[] = [], high:number[] = [], low:number[] = [], close:number[] = [], volume:number[] = [];
+  const bidOpen:number[] = [], bidHigh:number[] = [], bidLow:number[] = [], bidClose:number[] = [];
+  const askOpen:number[] = [], askHigh:number[] = [], askLow:number[] = [], askClose:number[] = [];
   for (const x of candles) {
     timestamp.push(Math.floor(new Date(x.time).getTime()/1000));
     open.push(Number(x.mid.o)); high.push(Number(x.mid.h)); low.push(Number(x.mid.l)); close.push(Number(x.mid.c)); volume.push(Number(x.volume || 0));
+    bidOpen.push(Number(x.bid.o)); bidHigh.push(Number(x.bid.h)); bidLow.push(Number(x.bid.l)); bidClose.push(Number(x.bid.c));
+    askOpen.push(Number(x.ask.o)); askHigh.push(Number(x.ask.h)); askLow.push(Number(x.ask.l)); askClose.push(Number(x.ask.c));
   }
   return Response.json({
-    chart:{ result:[{ meta:{symbol:"XAU_USD",exchangeName:"OANDA",instrumentType:"CURRENCY"}, timestamp,
-      indicators:{quote:[{open,high,low,close,volume}]}
+    chart:{ result:[{ meta:{symbol:"XAU_USD",exchangeName:"OANDA",instrumentType:"CURRENCY",priceComponents:"MBA"}, timestamp,
+      indicators:{quote:[{open,high,low,close,volume,bidOpen,bidHigh,bidLow,bidClose,askOpen,askHigh,askLow,askClose}]}
     }], error:null }
   }, { headers:{"Cache-Control":"no-store"} });
 };
