@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#060a10" />
-    <title>Smart Gold V10.17 Espérance Nette</title>
+    <title>Smart Gold V10.18 Comparaison Sessions</title>
     <style>
       :root {
         --bg: #05080d;
@@ -502,7 +502,7 @@
         <div class="brand">
           <div class="logo">Au</div>
           <div>
-            <div class="title">Smart Gold V10.17 Pro 👑</div>
+            <div class="title">Smart Gold V10.18 Pro 👑</div>
             <div class="sub">XAU/USD · ANALYSE & ENTRÉES · Maxime Masson</div>
             <div class="small">
               DISCIPLINE · ANALYSE · PROTECTION DU CAPITAL
@@ -609,6 +609,10 @@
             À 100 $ risqués par trade, le test sous stress équivaut historiquement à
             environ +1 848 $, +28,87 $ par trade et 347 $ de drawdown. Ces montants
             illustrent le ratio risque/rendement; ils ne garantissent pas un résultat futur.
+            Comparaison des entrées : sans filtre horaire, la meilleure règle reste négative
+            (−5,34R, PF 0,94). L’Asie BUY est prometteuse (+5,28R), mais seulement un bloc
+            sur trois est positif; Londres manque de trades. New York demeure la seule session
+            robuste. Les positions peuvent néanmoins continuer jusqu’aux sessions suivantes.
             Prochaine preuve : forward paper sans changer les paramètres. Aucun ordre réel n’est autorisé.
           </div>
         </details>
@@ -2587,7 +2591,7 @@
           )
           .join("");
         $("btStatus").textContent = n
-            ? `Moteur live V10.17 · OANDA bid/ask · M15 avec contexte H1/4H sur ${(days / 365.25).toFixed(2)} an · ${n} trades · ${wins} TP1 · ${losses} SL · ${breakevens} BE · ${timeouts} sorties après 8 h · ${pnl.toFixed(1)}R net. ${strategySummary}`
+            ? `Moteur live V10.18 · OANDA bid/ask · M15 avec contexte H1/4H sur ${(days / 365.25).toFixed(2)} an · ${n} trades · ${wins} TP1 · ${losses} SL · ${breakevens} BE · ${timeouts} sorties après 8 h · ${pnl.toFixed(1)}R net. ${strategySummary}`
           : "Aucun signal complet clôturé sur les bougies disponibles.";
         $("btQuality").textContent =
           `Fréquence : ${signalsPerWeek.toFixed(1)}/semaine · ${signalsPerDay.toFixed(2)}/jour de marché · ${noSignalDays} jour(s) et ${noSignalWeeks} semaine(s) sans entrée. Qualité : ${quality}. Validation : 75 % développement en 3 blocs + purge 8 h + 25 % test final intact. Stratégies autorisées en direct : ${approvedStrategies.size ? [...approvedStrategies].join(", ") : "AUCUNE — MODE RECHERCHE"}. Sessions — ${sessionSummary || "aucune"}.`;
