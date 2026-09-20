@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#060a10" />
-    <title>Smart Gold V10.13 Zones Subtiles</title>
+    <title>Smart Gold V10.14 Backtests Clarifiés</title>
     <style>
       :root {
         --bg: #05080d;
@@ -601,8 +601,8 @@
           <div class="small">
             Le SELL avec sweep + cassure de structure atteint +6,71R en développement
             et +4,50R au test final, mais tombe à −3,60R lorsqu’on retarde l’entrée
-            de 5 minutes. Le walk-forward global produit −5,40R (PF 0,62).
-            Les retracements BUY et SELL échouent également. Verdict : recherche
+            de 5 minutes. La gestion fractionnée améliore le walk-forward de −5,40R à −3,42R (PF 0,76), mais il reste négatif.
+            Les retracements BUY/SELL et les filtres premium/discount + volume n’ont produit aucun nouveau profil validé. Verdict : recherche
             seulement, aucun ordre réel ni paper candidat actif.
           </div>
         </details>
@@ -786,11 +786,9 @@
         </div>
       </div></details>
       <section class="card" id="backtestSection">
-        <div class="sectionTitle">RÉSULTAT DU BACKTEST</div>
+        <div class="sectionTitle">BACKTEST DU MOTEUR ACTUEL · 12 MOIS</div>
         <div class="small" id="btStatus">Calcul en attente…</div>
-        <div class="small" id="btQuality" style="margin-top: 5px">
-          Validation statistique : en attente.
-        </div>
+        <div class="small" id="btQuality" style="margin-top: 5px">Validation statistique : en attente.</div>\n        <div class="small essentialHint">Ce bloc teste uniquement les règles actuellement utilisées par les signaux. Les essais du laboratoire sur trois ans sont séparés et ne modifient ce résultat qu’après validation complète.</div>
         <div class="dashboard" style="margin-top: 8px">
           <div class="metricCard">
             <div class="muted">WIN RATE</div>
@@ -868,7 +866,7 @@
         </div>
       </section>
       <footer class="footer">
-        <span>Smart Gold V10.13 Zones Subtiles · créé pour Maxime Masson</span
+        <span>Smart Gold V10.14 Backtests Clarifiés · créé pour Maxime Masson</span
         ><span class="green">● Signal sécurisé</span>
       </footer>
     </main>
@@ -2583,7 +2581,7 @@
           )
           .join("");
         $("btStatus").textContent = n
-            ? `V10.12 Robustness Lab · OANDA bid/ask · M15 avec contexte H1/4H sur ${(days / 365.25).toFixed(2)} an · ${n} trades · ${wins} TP1 · ${losses} SL · ${breakevens} BE · ${timeouts} sorties après 8 h · ${pnl.toFixed(1)}R net. ${strategySummary}`
+            ? `Moteur live V10.14 · OANDA bid/ask · M15 avec contexte H1/4H sur ${(days / 365.25).toFixed(2)} an · ${n} trades · ${wins} TP1 · ${losses} SL · ${breakevens} BE · ${timeouts} sorties après 8 h · ${pnl.toFixed(1)}R net. ${strategySummary}`
           : "Aucun signal complet clôturé sur les bougies disponibles.";
         $("btQuality").textContent =
           `Fréquence : ${signalsPerWeek.toFixed(1)}/semaine · ${signalsPerDay.toFixed(2)}/jour de marché · ${noSignalDays} jour(s) et ${noSignalWeeks} semaine(s) sans entrée. Qualité : ${quality}. Validation : 75 % développement en 3 blocs + purge 8 h + 25 % test final intact. Stratégies autorisées en direct : ${approvedStrategies.size ? [...approvedStrategies].join(", ") : "AUCUNE — MODE RECHERCHE"}. Sessions — ${sessionSummary || "aucune"}.`;
