@@ -43,7 +43,7 @@ export default async (req: Request) => {
     chart:{ result:[{ meta:{symbol:"XAU_USD",exchangeName:"OANDA",instrumentType:"CURRENCY",priceComponents:"MBA"}, timestamp,
       indicators:{quote:[{open,high,low,close,volume,bidOpen,bidHigh,bidLow,bidClose,askOpen,askHigh,askLow,askClose}]}
     }], error:null }
-  }, { headers:{"Cache-Control":"no-store"} });
+  }, { headers:{"Cache-Control":to ? "public, max-age=300, s-maxage=21600" : "public, max-age=10, s-maxage=20"} });
 };
 
 export const config: Config = { path:"/api/xauusd" };
