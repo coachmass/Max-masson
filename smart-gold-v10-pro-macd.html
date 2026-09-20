@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#060a10" />
-    <title>Smart Gold V10.8 Momentum Candidate</title>
+    <title>Smart Gold V10.9 Essentiel</title>
     <style>
       :root {
         --bg: #05080d;
@@ -425,6 +425,53 @@
           font-size: 25px;
         }
       }
+      details.advancedPanel {
+        padding: 0;
+        overflow: hidden;
+      }
+      details.advancedPanel > summary,
+      details.inlineDetails > summary {
+        cursor: pointer;
+        list-style: none;
+        padding: 15px;
+        color: var(--gold);
+        font-weight: 800;
+        letter-spacing: 0.04em;
+      }
+      details.advancedPanel > summary::-webkit-details-marker,
+      details.inlineDetails > summary::-webkit-details-marker {
+        display: none;
+      }
+      details.advancedPanel > summary::after,
+      details.inlineDetails > summary::after {
+        content: "＋";
+        float: right;
+      }
+      details.advancedPanel[open] > summary::after,
+      details.inlineDetails[open] > summary::after {
+        content: "−";
+      }
+      .advancedBody {
+        padding: 0 15px 15px;
+      }
+      .strategyStrip .strategyItem:nth-child(n + 3) {
+        display: none;
+      }
+      #momentumCandidateCard .dashboard {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .optionalMetric {
+        display: none;
+      }
+      .essentialHint {
+        margin-top: 8px;
+        color: var(--muted);
+      }
+      @media (max-width: 650px) {
+        #momentumCandidateCard .dashboard {
+          grid-template-columns: 1fr;
+        }
+      }
     </style>
   </head>
   <body>
@@ -509,25 +556,13 @@
         </div>
       </section>
       <section class="card" id="momentumCandidateCard">
-        <div class="sectionTitle">V10.8 MOMENTUM CANDIDATE · PAPER SEULEMENT</div>
+        <div class="sectionTitle">CANDIDAT MOMENTUM · PAPER</div>
         <div class="small">
-          Candidat fixe sans auto-optimisation : SELL seulement après clôture H1 sous le
-          plus bas des 48 heures précédentes, EMA20 H1 sous EMA50, ATR H1 en hausse et
-          session Londres/New York. Entrée M5 suivante, SL 1,5 ATR M5 et TP 1R.
+          SELL seulement · cassure H1 confirmée · volatilité montante · Londres/New York.
         </div>
         <div class="dashboard" style="margin-top: 8px">
           <div class="metricCard">
-            <div class="muted">DÉVELOPPEMENT</div>
-            <div class="big green">64,7 %</div>
-            <div class="small">34 trades · +9,32R · PF 1,76</div>
-          </div>
-          <div class="metricCard">
-            <div class="muted">TEST FINAL INTACT</div>
-            <div class="big green">71,4 %</div>
-            <div class="small">14 trades · +5,72R · PF 2,40</div>
-          </div>
-          <div class="metricCard">
-            <div class="muted">ÉTAT LIVE</div>
+            <div class="muted">ÉTAT MAINTENANT</div>
             <div id="momentumState" class="big gold">ANALYSE…</div>
             <div id="momentumDetails" class="small">Chargement M5/H1…</div>
           </div>
@@ -537,13 +572,17 @@
             <div id="momentumLevels" class="small">Aucun ordre réel autorisé.</div>
           </div>
         </div>
-        <div class="note" style="margin-top: 9px">
-          <b>Verrou :</b> ce candidat est prometteur sur plusieurs paramètres voisins,
-          mais l’optimisation mensuelle libre a échoué (−5,85R, PF 0,78). Il reste donc
-          en suivi paper jusqu’à un échantillon forward suffisant.
-        </div>
+        <details class="inlineDetails">
+          <summary>Pourquoi ce candidat?</summary>
+          <div class="small">
+            Développement : 34 trades, 64,7 % gagnants, +9,32R, PF 1,76.
+            Test final intact : 14 trades, 71,4 %, +5,72R, PF 2,40.
+            L’optimisation mensuelle libre a échoué : les règles restent donc fixes
+            et le suivi demeure paper.
+          </div>
+        </details>
       </section>
-      <section class="card">
+      <details class="card advancedPanel"><summary>Détails du Reliability Lab</summary><div class="advancedBody">
         <div class="sectionTitle">RELIABILITY LAB · WIN RATE + ESPÉRANCE</div>
         <div class="small">
           Le profil R:R, le breakeven et le score minimum sont choisis uniquement
@@ -569,8 +608,8 @@
             </tbody>
           </table>
         </div>
-      </section>
-      <section class="card">
+      </div></details>
+      <details class="card advancedPanel"><summary>Indicateurs MACD</summary><div class="advancedBody">
         <div class="sectionTitle">MACD — CONFLUENCE GOLD</div>
         <div class="two">
           <div class="level">
@@ -591,7 +630,7 @@
           </div>
         </div>
         <div id="dataState" class="status">Connexion au flux Gold…</div>
-      </section>
+      </div></details>
       <div class="mainGrid">
         <div>
           <section class="card">
@@ -601,10 +640,10 @@
               <canvas id="chartCanvas"></canvas>
             </div>
           </section>
-          <section class="card">
+          <details class="card advancedPanel"><summary>Analyse complète du marché</summary><div class="advancedBody">
             <div class="sectionTitle">ANALYSE COMPLÈTE DU MARCHÉ</div>
             <div id="marketText" class="analysis">Chargement…</div>
-          </section>
+          </div></details>
         </div>
         <aside>
           <section class="card">
@@ -668,7 +707,7 @@
               Aucun trade sans validation.
             </div>
           </section>
-          <section class="card">
+          <details class="card advancedPanel"><summary>Tous les indicateurs</summary><div class="advancedBody">
             <div class="sectionTitle">INDICATEURS</div>
             <div class="two">
               <div class="level">
@@ -696,15 +735,15 @@
                 <b id="volatility">—</b>
               </div>
             </div>
-          </section>
-          <section class="card">
+          </div></details>
+          <details class="card advancedPanel"><summary>Fibonacci, liquidité et structure</summary><div class="advancedBody">
             <div class="sectionTitle">FIBONACCI · LIQUIDITÉ · STRUCTURE</div>
             <div id="fib" class="small">—</div>
             <div id="structure" class="analysis" style="margin-top: 7px">—</div>
-          </section>
+          </div></details>
         </aside>
       </div>
-      <section class="card">
+      <details class="card advancedPanel"><summary>Toutes les validations du signal</summary><div class="advancedBody">
         <div class="sectionTitle">VALIDATION DU SIGNAL</div>
         <div class="checks" id="checks"></div>
         <div class="note" style="margin-top: 9px">
@@ -713,9 +752,9 @@
           cohérente, réaction de bougie, MACD aligné et espace théorique ≥3R. Si
           une condition critique manque, le moteur reste sur ATTENDRE.
         </div>
-      </section>
-      <section class="card">
-        <div class="sectionTitle">TEST HISTORIQUE DAY TRADING M15</div>
+      </div></details>
+      <section class="card" id="backtestSection">
+        <div class="sectionTitle">RÉSULTAT DU BACKTEST</div>
         <div class="small" id="btStatus">Calcul en attente…</div>
         <div class="small" id="btQuality" style="margin-top: 5px">
           Validation statistique : en attente.
@@ -729,11 +768,11 @@
             <div class="muted">TRADES</div>
             <div id="trades" class="big">—</div>
           </div>
-          <div class="metricCard">
+          <div class="metricCard optionalMetric">
             <div class="muted">SIGNAUX / SEMAINE</div>
             <div id="signalsWeek" class="big">—</div>
           </div>
-          <div class="metricCard">
+          <div class="metricCard optionalMetric">
             <div class="muted">SIGNAUX / JOUR</div>
             <div id="signalsDay" class="big">—</div>
           </div>
@@ -746,7 +785,9 @@
             <div id="dd" class="big">—</div>
           </div>
         </div>
-        <div class="tableWrap" aria-label="Validation hors échantillon par stratégie">
+        <details class="inlineDetails">
+          <summary>Voir les détails statistiques</summary>
+          <div class="tableWrap" aria-label="Validation hors échantillon par stratégie">
           <table class="validationTable">
             <thead>
               <tr>
@@ -780,6 +821,8 @@
           Les performances passées
           ne garantissent pas les résultats futurs.
         </div>
+      
+        </details>
       </section>
       <section class="card">
         <div class="sectionTitle">RÈGLES DE PROTECTION DU CAPITAL</div>
@@ -793,7 +836,7 @@
         </div>
       </section>
       <footer class="footer">
-        <span>Smart Gold V10.8 Pro · créé pour Maxime Masson</span
+        <span>Smart Gold V10.9 Essentiel · créé pour Maxime Masson</span
         ><span class="green">● Signal sécurisé</span>
       </footer>
     </main>
@@ -2374,7 +2417,7 @@
           )
           .join("");
         $("btStatus").textContent = n
-            ? `V10.8 Reliability Lab · OANDA bid/ask · M15 avec contexte H1/4H sur ${(days / 365.25).toFixed(2)} an · ${n} trades · ${wins} TP1 · ${losses} SL · ${breakevens} BE · ${timeouts} sorties après 8 h · ${pnl.toFixed(1)}R net. ${strategySummary}`
+            ? `V10.9 Essentiel · OANDA bid/ask · M15 avec contexte H1/4H sur ${(days / 365.25).toFixed(2)} an · ${n} trades · ${wins} TP1 · ${losses} SL · ${breakevens} BE · ${timeouts} sorties après 8 h · ${pnl.toFixed(1)}R net. ${strategySummary}`
           : "Aucun signal complet clôturé sur les bougies disponibles.";
         $("btQuality").textContent =
           `Fréquence : ${signalsPerWeek.toFixed(1)}/semaine · ${signalsPerDay.toFixed(2)}/jour de marché · ${noSignalDays} jour(s) et ${noSignalWeeks} semaine(s) sans entrée. Qualité : ${quality}. Validation : 75 % développement en 3 blocs + purge 8 h + 25 % test final intact. Stratégies autorisées en direct : ${approvedStrategies.size ? [...approvedStrategies].join(", ") : "AUCUNE — MODE RECHERCHE"}. Sessions — ${sessionSummary || "aucune"}.`;
