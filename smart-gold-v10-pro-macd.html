@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#060a10" />
-    <title>Smart Gold V10.15 Candidat Figé</title>
+    <title>Smart Gold V10.16 Replay Causal</title>
     <style>
       :root {
         --bg: #05080d;
@@ -502,7 +502,7 @@
         <div class="brand">
           <div class="logo">Au</div>
           <div>
-            <div class="title">Smart Gold V10.15 Pro 👑</div>
+            <div class="title">Smart Gold V10.16 Pro 👑</div>
             <div class="sub">XAU/USD · ANALYSE & ENTRÉES · Maxime Masson</div>
             <div class="small">
               DISCIPLINE · ANALYSE · PROTECTION DU CAPITAL
@@ -578,7 +578,7 @@
         </div>
       </section>
       <section class="card" id="momentumCandidateCard">
-        <div class="sectionTitle">CANDIDAT FIGÉ · FORWARD PAPER</div>
+        <div class="sectionTitle">CANDIDAT FIGÉ · REPLAY CAUSAL</div>
         <div class="dashboard" style="margin-top: 8px">
           <div class="metricCard">
             <div class="muted">AUTOMATISATION</div>
@@ -592,22 +592,22 @@
           </div>
         </div>
         <div class="small essentialHint">
-          Filtre figé : aucune nouvelle entrée 30 min avant à 45 min après CPI/NFP.
-          Stop adaptatif : derrière l’extrême du sweep + 0,15 ATR, sans distance fixe.
-          Le candidat reste positif avec spread bid/ask, retard, glissement et coûts supplémentaires.
+          Replay gauche à droite : 82 trades audités, 0 donnée future utilisée.
+          Filtre CPI/NFP figé et stop derrière le sweep + 0,15 ATR.
+          Le profil haute précision reste positif dans les trois blocs sous stress.
         </div>
         <details class="inlineDetails">
           <summary>Voir la validation du candidat</summary>
           <div class="small">
-            Sur le développement : 69 trades, +17,08R, PF 1,47 et +0,25R/trade.
-            Sous stress complet : 68 trades, +14,28R, PF 1,40 et +0,21R/trade.
-            Une comparaison figée de six marges (0 à 0,50 ATR) confirme 0,15 ATR comme
-            la seule à conserver trois blocs positifs sous stress.
-            Le test final donne 13 trades, +7,74R et PF 2,26, mais cet échantillon est petit
-            et a déjà été consulté : il ne sert plus à ajuster la règle. Les dates CPI/NFP et
-            FOMC proviennent des calendriers officiels; le FOMC de 14 h n’a bloqué aucune entrée,
-            car la fenêtre d’entrée New York se termine avant. Étape suivante : forward paper
-            sans aucun changement de paramètres. Aucun ordre réel n’est autorisé.
+            Le replay causal confirme 0 violation sur 82 trades : confirmation clôturée
+            avant l’entrée, H1/H4 clôturés et exécution bid/ask. Le profil sélectionné uniquement
+            sur le développement exige une impulsion ≥0,55 ATR, une clôture forte ≥60 % et une
+            tendance H1 ≥0,25 ATR. Résultat : 59 trades, 49,2 % de réussite, +18,27R,
+            PF 1,61 et +0,31R/trade. Sous retard, glissement et coûts : +15,60R,
+            PF 1,52 et +0,26R/trade, avec trois blocs positifs. La variante au meilleur
+            win rate brut atteint 55,8 % à 1R, mais son avantage disparaît sous stress;
+            elle est rejetée. La cible de 80 % n’est donc pas encore validée.
+            Prochaine preuve : forward paper sans changer les paramètres. Aucun ordre réel n’est autorisé.
           </div>
         </details>
         <div style="display:none" aria-hidden="true">
@@ -2585,7 +2585,7 @@
           )
           .join("");
         $("btStatus").textContent = n
-            ? `Moteur live V10.15 · OANDA bid/ask · M15 avec contexte H1/4H sur ${(days / 365.25).toFixed(2)} an · ${n} trades · ${wins} TP1 · ${losses} SL · ${breakevens} BE · ${timeouts} sorties après 8 h · ${pnl.toFixed(1)}R net. ${strategySummary}`
+            ? `Moteur live V10.16 · OANDA bid/ask · M15 avec contexte H1/4H sur ${(days / 365.25).toFixed(2)} an · ${n} trades · ${wins} TP1 · ${losses} SL · ${breakevens} BE · ${timeouts} sorties après 8 h · ${pnl.toFixed(1)}R net. ${strategySummary}`
           : "Aucun signal complet clôturé sur les bougies disponibles.";
         $("btQuality").textContent =
           `Fréquence : ${signalsPerWeek.toFixed(1)}/semaine · ${signalsPerDay.toFixed(2)}/jour de marché · ${noSignalDays} jour(s) et ${noSignalWeeks} semaine(s) sans entrée. Qualité : ${quality}. Validation : 75 % développement en 3 blocs + purge 8 h + 25 % test final intact. Stratégies autorisées en direct : ${approvedStrategies.size ? [...approvedStrategies].join(", ") : "AUCUNE — MODE RECHERCHE"}. Sessions — ${sessionSummary || "aucune"}.`;
