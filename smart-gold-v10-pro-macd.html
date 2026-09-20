@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#060a10" />
-    <title>Smart Gold V10.7 Pro Reliability Lab</title>
+    <title>Smart Gold V10.8 Momentum Candidate</title>
     <style>
       :root {
         --bg: #05080d;
@@ -508,6 +508,41 @@
           <b id="mtfDetail">4H — · 1H — · TF —</b>
         </div>
       </section>
+      <section class="card" id="momentumCandidateCard">
+        <div class="sectionTitle">V10.8 MOMENTUM CANDIDATE · PAPER SEULEMENT</div>
+        <div class="small">
+          Candidat fixe sans auto-optimisation : SELL seulement après clôture H1 sous le
+          plus bas des 48 heures précédentes, EMA20 H1 sous EMA50, ATR H1 en hausse et
+          session Londres/New York. Entrée M5 suivante, SL 1,5 ATR M5 et TP 1R.
+        </div>
+        <div class="dashboard" style="margin-top: 8px">
+          <div class="metricCard">
+            <div class="muted">DÉVELOPPEMENT</div>
+            <div class="big green">64,7 %</div>
+            <div class="small">34 trades · +9,32R · PF 1,76</div>
+          </div>
+          <div class="metricCard">
+            <div class="muted">TEST FINAL INTACT</div>
+            <div class="big green">71,4 %</div>
+            <div class="small">14 trades · +5,72R · PF 2,40</div>
+          </div>
+          <div class="metricCard">
+            <div class="muted">ÉTAT LIVE</div>
+            <div id="momentumState" class="big gold">ANALYSE…</div>
+            <div id="momentumDetails" class="small">Chargement M5/H1…</div>
+          </div>
+          <div class="metricCard">
+            <div class="muted">PLAN PAPER</div>
+            <div id="momentumPlan" class="big">—</div>
+            <div id="momentumLevels" class="small">Aucun ordre réel autorisé.</div>
+          </div>
+        </div>
+        <div class="note" style="margin-top: 9px">
+          <b>Verrou :</b> ce candidat est prometteur sur plusieurs paramètres voisins,
+          mais l’optimisation mensuelle libre a échoué (−5,85R, PF 0,78). Il reste donc
+          en suivi paper jusqu’à un échantillon forward suffisant.
+        </div>
+      </section>
       <section class="card">
         <div class="sectionTitle">RELIABILITY LAB · WIN RATE + ESPÉRANCE</div>
         <div class="small">
@@ -758,7 +793,7 @@
         </div>
       </section>
       <footer class="footer">
-        <span>Smart Gold V10.7 Pro · créé pour Maxime Masson</span
+        <span>Smart Gold V10.8 Pro · créé pour Maxime Masson</span
         ><span class="green">● Signal sécurisé</span>
       </footer>
     </main>
@@ -775,6 +810,7 @@
         rows = [],
         rowsH1 = [],
         rowsH4 = [],
+        rowsM5 = [],
         chartZones = null,
         feedFresh = false,
         isLoading = false,
@@ -1277,9 +1313,15 @@
         $("dataState").className = "status";
         try {
           const selected = fetchHistory(TF[tf][1], 800),
+            m5Request = tf === 5 ? selected : fetchHistory("5m", 800),
             h1Request = tf === 60 ? selected : fetchHistory("1h", 500),
             h4Request = tf === 240 ? selected : fetchHistory("4h", 500),
-            [a, h1, h4] = await Promise.all([selected, h1Request, h4Request]);
+            [a, m5, h1, h4] = await Promise.all([
+              selected,
+              m5Request,
+              h1Request,
+              h4Request,
+            ]);
           if (a.length < 80) throw Error("historique insuffisant");
           const lp = a[a.length - 1]?.c;
           if (!Number.isFinite(lp) || lp <= 100 || lp >= 10000)
@@ -1297,6 +1339,7 @@
           )
             throw Error("bougies OANDA invalides");
           rows = a;
+          rowsM5 = m5;
           rowsH1 = h1;
           rowsH4 = h4;
           const candleAge = Date.now() - a[a.length - 1].t,
@@ -1317,6 +1360,7 @@
             new Date(a[a.length - 1].t).toLocaleTimeString("fr-CA");
         } catch (e) {
           rows = [];
+          rowsM5 = [];
           chartZones = null;
           feedFresh = false;
           $("dataState").className = "status bad";
@@ -1364,6 +1408,56 @@
           $("checks").innerHTML =
             `<div class="check ${feedOk ? "ok" : "no"}">${feedOk ? "✓" : "✕"} Données reçues</div><div class="check no">✕ Signal non validé</div><div class="check no">✕ Aucun trade autorisé</div>`;
         }
+      }
+      function evaluateMomentumCandidate() {
+        const h1 = rowsH1,
+          m5 = rowsM5;
+        if (h1.length < 80 || m5.length < 220) {
+          $("momentumState").textContent = "DONNÉES INSUFFISANTES";
+          $("momentumState").className = "big red";
+          $("momentumDetails").textContent = "Le module exige des bougies H1 et M5 clôturées.";
+          $("momentumPlan").textContent = "ATTENDRE";
+          $("momentumLevels").textContent = "Aucun ordre réel autorisé.";
+          return { active: false };
+        }
+        const hp = buildPack(h1),
+          mp = buildPack(m5),
+          k = h1.length - 1,
+          i = m5.length - 1,
+          prior = h1.slice(k - 48, k),
+          channelLow = Math.min(...prior.map((x) => x.l)),
+          breakout = h1[k].c < channelLow,
+          trend = hp.e20[k] < hp.e50[k],
+          risingVolatility = hp.A[k] > hp.A[Math.max(0, k - 24)],
+          liquidSession = ["LONDRES", "NEW YORK"].includes(marketSession(m5[i].t)),
+          active =
+            breakout &&
+            trend &&
+            risingVolatility &&
+            liquidSession &&
+            feedFresh &&
+            Number.isFinite(mp.A[i]),
+          entry = m5[i].c,
+          risk = (mp.A[i] || 0) * 1.5,
+          sl = entry + risk,
+          tp = entry - risk,
+          conditions = [
+            ["Cassure plus bas 48 h", breakout],
+            ["EMA20 H1 < EMA50", trend],
+            ["ATR H1 en hausse", risingVolatility],
+            ["Session liquide", liquidSession],
+            ["Flux à jour", feedFresh],
+          ];
+        $("momentumState").textContent = active ? "SELL PAPER" : "ATTENDRE";
+        $("momentumState").className = active ? "big red" : "big gold";
+        $("momentumDetails").textContent = conditions
+          .map(([name, ok]) => `${ok ? "✓" : "✕"} ${name}`)
+          .join(" · ");
+        $("momentumPlan").textContent = active ? "1:1 · SL 1,5 ATR" : "AUCUN SIGNAL";
+        $("momentumLevels").textContent = active
+          ? `Entry ${fmt(entry)} · SL ${fmt(sl)} · TP ${fmt(tp)} · PAPER, aucun ordre automatique`
+          : `Canal 48 h : ${fmt(channelLow)} · suivi paper seulement`;
+        return { active, entry, sl, tp };
       }
       function analyze() {
         const r = rows,
@@ -1428,7 +1522,8 @@
             approvedPattern.sessions.includes(currentSession) &&
             score >= approvedPattern.minScore,
           valid = signal.valid && feedFresh && validationReady && strategyApproved,
-          globalTrend = h1Trend === h4Trend ? h1Trend : "neutral";
+          globalTrend = h1Trend === h4Trend ? h1Trend : "neutral",
+          momentumCandidate = evaluateMomentumCandidate();
         $("price").textContent = fmt(p);
         $("trend").textContent =
           globalTrend === "bull"
@@ -2279,7 +2374,7 @@
           )
           .join("");
         $("btStatus").textContent = n
-            ? `V10.7 Reliability Lab · OANDA bid/ask · M15 avec contexte H1/4H sur ${(days / 365.25).toFixed(2)} an · ${n} trades · ${wins} TP1 · ${losses} SL · ${breakevens} BE · ${timeouts} sorties après 8 h · ${pnl.toFixed(1)}R net. ${strategySummary}`
+            ? `V10.8 Reliability Lab · OANDA bid/ask · M15 avec contexte H1/4H sur ${(days / 365.25).toFixed(2)} an · ${n} trades · ${wins} TP1 · ${losses} SL · ${breakevens} BE · ${timeouts} sorties après 8 h · ${pnl.toFixed(1)}R net. ${strategySummary}`
           : "Aucun signal complet clôturé sur les bougies disponibles.";
         $("btQuality").textContent =
           `Fréquence : ${signalsPerWeek.toFixed(1)}/semaine · ${signalsPerDay.toFixed(2)}/jour de marché · ${noSignalDays} jour(s) et ${noSignalWeeks} semaine(s) sans entrée. Qualité : ${quality}. Validation : 75 % développement en 3 blocs + purge 8 h + 25 % test final intact. Stratégies autorisées en direct : ${approvedStrategies.size ? [...approvedStrategies].join(", ") : "AUCUNE — MODE RECHERCHE"}. Sessions — ${sessionSummary || "aucune"}.`;
