@@ -207,6 +207,44 @@ const rows = (await fetchHistory()).filter(x => x.t >= Date.now() - 3 * 365.25 *
 const m15 = aggregate(rows, 900000), h1 = aggregate(rows, 3600000), h4 = aggregate(rows, 14400000);
 const p5 = { a: atr(rows) }, p15 = pack(m15), p1 = pack(h1), p4 = pack(h4);
 
+const rangeFormatters = {
+  PRE_ASIA_QC: new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Toronto", year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", hourCycle: "h23",
+  }),
+  ASIA_BEFORE_LONDON: new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", hourCycle: "h23",
+  }),
+};
+function localDayHour(formatter, t) {
+  const p = Object.fromEntries(formatter.formatToParts(new Date(t)).map(x => [x.type, x.value]));
+  return { key: `${p.year}-${p.month}-${p.day}`, hour: +p.hour };
+}
+function buildFixedRange(formatter, startHour, endHour) {
+  const ranges = new Map();
+  for (const row of rows) {
+    const { key, hour } = localDayHour(formatter, row.t);
+    if (hour < startHour || hour >= endHour) continue;
+    const current = ranges.get(key) || { high: -Infinity, low: Infinity, lastClose: 0, bars: 0 };
+    current.high = Math.max(current.high, row.h);
+    current.low = Math.min(current.low, row.l);
+    current.lastClose = Math.max(current.lastClose, row.t + BAR);
+    current.bars++;
+    ranges.set(key, current);
+  }
+  return ranges;
+}
+const fixedRanges = {
+  PRE_ASIA_QC: buildFixedRange(rangeFormatters.PRE_ASIA_QC, 17, 20),
+  ASIA_BEFORE_LONDON: buildFixedRange(rangeFormatters.ASIA_BEFORE_LONDON, 0, 8),
+};
+function referenceRangeAt(type, t) {
+  const { key } = localDayHour(rangeFormatters[type], t);
+  const range = fixedRanges[type].get(key);
+  return range && range.bars >= 12 && range.lastClose <= t ? range : null;
+}
+
 function completedMap(tfRows, duration) {
   const out = Array(rows.length).fill(0); let k = 0;
   for (let i = 0; i < rows.length; i++) {
@@ -280,8 +318,12 @@ function run(cfg, stress = {}) {
       if (h1TrendAtr < cfg.minH1TrendAtr) continue;
     }
 
-    const prior = rows.slice(i - cfg.sweepBars, i);
-    const level = cfg.side === 1 ? Math.min(...prior.map(x => x.l)) : Math.max(...prior.map(x => x.h));
+    const fixedRange = cfg.referenceRange ? referenceRangeAt(cfg.referenceRange, rows[i].t) : null;
+    if (cfg.referenceRange && !fixedRange) continue;
+    const prior = cfg.referenceRange ? null : rows.slice(i - cfg.sweepBars, i);
+    const level = cfg.side === 1
+      ? (fixedRange ? fixedRange.low : Math.min(...prior.map(x => x.l)))
+      : (fixedRange ? fixedRange.high : Math.max(...prior.map(x => x.h)));
     const swept = cfg.side === 1
       ? rows[i].l < level && rows[i].c > level
       : rows[i].h > level && rows[i].c < level;
@@ -583,6 +625,56 @@ const fullDayStress = fullDayDevelopment.slice(0, 6).map(candidate => {
   b.stressedDevelopment.pf - a.stressedDevelopment.pf ||
   a.stressedDevelopment.dd - b.stressedDevelopment.dd
 );
+function buildReferenceConfigs(sessionFilter, referenceRange) {
+  const out = [];
+  for (const family of ["CONTINUATION", "RETRACEMENT"])
+  for (const side of [1, -1])
+  for (const confirmBars of [3, 6])
+  for (const targetR of family === "CONTINUATION" ? [1.5, 2] : [1, 1.5])
+    out.push({
+      family,
+      side,
+      sweepBars: 12,
+      confirmBars,
+      targetR,
+      exitMode: "FIXED",
+      sessionFilter,
+      referenceRange,
+      stopAtrBuffer: 0.15,
+    });
+  return out;
+}
+function runReferenceStudy(configs) {
+  const all = configs.map(cfg => {
+    const base = run(cfg, { newsFilter: true });
+    return { cfg, development: base.dev, positiveFolds: base.positiveFolds };
+  }).sort((a, b) => b.development.exp - a.development.exp || b.development.pf - a.development.pf);
+  const qualified = all.filter(x => x.development.n >= 30 && x.development.exp > 0 && x.positiveFolds >= 2)
+    .sort((a, b) =>
+      b.positiveFolds - a.positiveFolds ||
+      b.development.exp - a.development.exp ||
+      b.development.pf - a.development.pf ||
+      a.development.dd - b.development.dd
+    );
+  const stressed = qualified.slice(0, 6).map(candidate => {
+    const result = run(candidate.cfg, { newsFilter: true, delayBars: 1, slipAtr: 0.05, extraCost: 0.03 });
+    return {
+      ...candidate,
+      stressedDevelopment: result.dev,
+      stressedPositiveFolds: result.positiveFolds,
+    };
+  }).sort((a, b) =>
+    b.stressedPositiveFolds - a.stressedPositiveFolds ||
+    b.stressedDevelopment.exp - a.stressedDevelopment.exp ||
+    b.stressedDevelopment.pf - a.stressedDevelopment.pf ||
+    a.stressedDevelopment.dd - b.stressedDevelopment.dd
+  );
+  return { all, qualified, stressed };
+}
+const asiaRangeConfigs = buildReferenceConfigs("ASIA_QC", "PRE_ASIA_QC");
+const londonRangeConfigs = buildReferenceConfigs("LONDON", "ASIA_BEFORE_LONDON");
+const asiaRangeStudy = runReferenceStudy(asiaRangeConfigs);
+const londonRangeStudy = runReferenceStudy(londonRangeConfigs);
 console.log(JSON.stringify({
   bars: rows.length,
   start: new Date(rows[0].t).toISOString(),
@@ -686,5 +778,27 @@ console.log(JSON.stringify({
     developmentQualified: fullDayDevelopment.length,
     bestObservedBeforeQualification: fullDayAll[0] || null,
     candidatesUnderStress: fullDayStress,
+  },
+  sessionSpecificRangeStudies: {
+    asia: {
+      entrySession: "20:00-23:00_AMERICA_TORONTO",
+      referenceRange: "17:00-20:00_AMERICA_TORONTO",
+      rangeFrozenBeforeEntry: true,
+      selectionUsesFinalTest: false,
+      tested: asiaRangeConfigs.length,
+      developmentQualified: asiaRangeStudy.qualified.length,
+      bestObservedBeforeQualification: asiaRangeStudy.all[0] || null,
+      candidatesUnderStress: asiaRangeStudy.stressed,
+    },
+    london: {
+      entrySession: "08:00-13:00_EUROPE_LONDON",
+      referenceRange: "00:00-08:00_EUROPE_LONDON",
+      rangeFrozenBeforeEntry: true,
+      selectionUsesFinalTest: false,
+      tested: londonRangeConfigs.length,
+      developmentQualified: londonRangeStudy.qualified.length,
+      bestObservedBeforeQualification: londonRangeStudy.all[0] || null,
+      candidatesUnderStress: londonRangeStudy.stressed,
+    },
   },
 }, null, 2));
