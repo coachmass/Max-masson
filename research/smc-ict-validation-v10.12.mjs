@@ -479,8 +479,10 @@ const precisionStudy = precisionConfigs.map(cfg => {
 }).filter(x => x.development.n >= 24 && x.positiveFolds >= 2 && x.development.exp > 0)
   .sort((a, b) =>
     b.stressedPositiveFolds - a.stressedPositiveFolds ||
-    b.winRate90LowerBound - a.winRate90LowerBound ||
-    b.stressedDevelopment.exp - a.stressedDevelopment.exp
+    b.stressedDevelopment.exp - a.stressedDevelopment.exp ||
+    b.stressedDevelopment.pf - a.stressedDevelopment.pf ||
+    a.stressedDevelopment.dd - b.stressedDevelopment.dd ||
+    b.winRate90LowerBound - a.winRate90LowerBound
   );
 console.log(JSON.stringify({
   bars: rows.length,
@@ -542,7 +544,10 @@ console.log(JSON.stringify({
     replayTrace,
   },
   highPrecisionStudy: {
-    targetWinRate: 0.8,
+    primaryObjective: "MAXIMIZE_STRESSED_EXPECTANCY_R",
+    secondaryObjectives: ["PROFIT_FACTOR", "POSITIVE_TIME_FOLDS", "MINIMIZE_DRAWDOWN"],
+    informationalOnly: "WIN_RATE",
+    referenceRiskCad: [50, 100],
     minimumTargetR: 1,
     selectionUsesFinalTest: false,
     tested: precisionConfigs.length,
