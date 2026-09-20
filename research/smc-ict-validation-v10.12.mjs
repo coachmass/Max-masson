@@ -310,7 +310,10 @@ function run(cfg, stress = {}) {
     }
     const quotedEntry = cfg.side === 1 ? rows[entryIndex].ao : rows[entryIndex].bo;
     const entry = quotedEntry + cfg.side * p5.a[confirm] * (stress.slipAtr || 0);
-    const stop = sweepExtreme - cfg.side * p5.a[i] * 0.15;
+    // Structure-led stop. The ATR component is only the breathing room beyond
+    // the swept extreme; it is not a fixed pip distance.
+    const stopAtrBuffer = cfg.stopAtrBuffer ?? 0.15;
+    const stop = sweepExtreme - cfg.side * p5.a[i] * stopAtrBuffer;
     const risk = (entry - stop) * cfg.side;
     if (risk < 0.5 || risk > 20) continue;
     const result = exitTrade(rows, entryIndex, cfg.side, entry, stop, cfg.targetR, cfg.exitMode, stress.extraCost || 0);
@@ -385,6 +388,20 @@ const nyBuyNewsFilter = [
   const x = run(nyBuyCfg, s.options);
   return { name: s.name, dev: x.dev, test: x.test, positiveFolds: x.positiveFolds, blockedNews: x.blockedNews };
 });
+// Stop flexibility study is selected on development only. Final-test metrics
+// are deliberately not emitted because the final period has already been seen.
+const stopBufferStudy = [0, 0.1, 0.15, 0.25, 0.35, 0.5].map(stopAtrBuffer => {
+  const cfg = { ...nyBuyCfg, stopAtrBuffer };
+  const base = run(cfg, { newsFilter: true });
+  const stressed = run(cfg, { newsFilter: true, delayBars: 1, slipAtr: 0.05, extraCost: 0.03 });
+  return {
+    stopAtrBuffer,
+    development: base.dev,
+    positiveFolds: base.positiveFolds,
+    stressedDevelopment: stressed.dev,
+    stressedPositiveFolds: stressed.positiveFolds,
+  };
+});
 console.log(JSON.stringify({
   bars: rows.length,
   start: new Date(rows[0].t).toISOString(),
@@ -416,4 +433,5 @@ console.log(JSON.stringify({
     officialEvents: { cpiNfp: bls830Dates.length, fomc: fomcDates.length },
     tests: nyBuyNewsFilter,
   },
+  stopBufferStudy,
 }, null, 2));
