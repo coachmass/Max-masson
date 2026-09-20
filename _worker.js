@@ -53,3 +53,5 @@ export default {async fetch(request,env,ctx){
   if(url.pathname==="/smart-gold-v10-pro-macd"||url.pathname==="/smart-gold-v10-pro-macd/")return env.ASSETS.fetch(new Request(new URL("/smart-gold-v10-pro-macd.html",request.url),request));
   return env.ASSETS.fetch(request);
 }};
+
+// deploy-v10.7 2026-09-20T05:02:50.385Z
