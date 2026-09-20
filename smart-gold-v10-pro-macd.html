@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#060a10" />
-    <title>Smart Gold V10.14 Backtests Clarifiés</title>
+    <title>Smart Gold V10.15 Candidat Figé</title>
     <style>
       :root {
         --bg: #05080d;
@@ -502,7 +502,7 @@
         <div class="brand">
           <div class="logo">Au</div>
           <div>
-            <div class="title">Smart Gold V10.7 Pro 👑</div>
+            <div class="title">Smart Gold V10.15 Pro 👑</div>
             <div class="sub">XAU/USD · ANALYSE & ENTRÉES · Maxime Masson</div>
             <div class="small">
               DISCIPLINE · ANALYSE · PROTECTION DU CAPITAL
@@ -578,32 +578,33 @@
         </div>
       </section>
       <section class="card" id="momentumCandidateCard">
-        <div class="sectionTitle">VALIDATION BUY + SELL · 3 ANS</div>
+        <div class="sectionTitle">CANDIDAT FIGÉ · FORWARD PAPER</div>
         <div class="dashboard" style="margin-top: 8px">
           <div class="metricCard">
             <div class="muted">AUTOMATISATION</div>
             <div class="big red">BLOQUÉE</div>
-            <div class="small">Aucune stratégie ne passe toutes les épreuves de robustesse.</div>
+            <div class="small">En attente de nouvelles données jamais utilisées pour choisir les règles.</div>
           </div>
           <div class="metricCard">
             <div class="muted">MEILLEURE PISTE</div>
-            <div class="big gold">SELL CONTINUATION</div>
-            <div class="small">Positive en base, mais fragile au retard d’exécution.</div>
+            <div class="big gold">BUY · NEW YORK</div>
+            <div class="small">Continuation après sweep + cassure confirmée · objectif fixe 2R.</div>
           </div>
         </div>
         <div class="small essentialHint">
-          BUY, SELL, continuations et retracements sont tous testés. Le programme
-          attendra une configuration positive hors échantillon, en walk-forward
-          et sous stress avant d’autoriser un signal automatique.
+          Filtre figé : aucune nouvelle entrée 30 min avant à 45 min après CPI/NFP.
+          Le candidat reste positif avec spread bid/ask, retard, glissement et coûts supplémentaires.
         </div>
         <details class="inlineDetails">
-          <summary>Voir le verdict du laboratoire</summary>
+          <summary>Voir la validation du candidat</summary>
           <div class="small">
-            Le SELL avec sweep + cassure de structure atteint +6,71R en développement
-            et +4,50R au test final, mais tombe à −3,60R lorsqu’on retarde l’entrée
-            de 5 minutes. La gestion fractionnée améliore le walk-forward de −5,40R à −3,42R (PF 0,76), mais il reste négatif.
-            Les retracements BUY/SELL et les filtres premium/discount + volume n’ont produit aucun nouveau profil validé. Verdict : recherche
-            seulement, aucun ordre réel ni paper candidat actif.
+            Sur le développement : 69 trades, +17,08R, PF 1,47 et +0,25R/trade.
+            Sous stress complet : 68 trades, +14,28R, PF 1,40 et +0,21R/trade.
+            Le test final donne 13 trades, +7,74R et PF 2,26, mais cet échantillon est petit
+            et a déjà été consulté : il ne sert plus à ajuster la règle. Les dates CPI/NFP et
+            FOMC proviennent des calendriers officiels; le FOMC de 14 h n’a bloqué aucune entrée,
+            car la fenêtre d’entrée New York se termine avant. Étape suivante : forward paper
+            sans aucun changement de paramètres. Aucun ordre réel n’est autorisé.
           </div>
         </details>
         <div style="display:none" aria-hidden="true">
@@ -2581,7 +2582,7 @@
           )
           .join("");
         $("btStatus").textContent = n
-            ? `Moteur live V10.14 · OANDA bid/ask · M15 avec contexte H1/4H sur ${(days / 365.25).toFixed(2)} an · ${n} trades · ${wins} TP1 · ${losses} SL · ${breakevens} BE · ${timeouts} sorties après 8 h · ${pnl.toFixed(1)}R net. ${strategySummary}`
+            ? `Moteur live V10.15 · OANDA bid/ask · M15 avec contexte H1/4H sur ${(days / 365.25).toFixed(2)} an · ${n} trades · ${wins} TP1 · ${losses} SL · ${breakevens} BE · ${timeouts} sorties après 8 h · ${pnl.toFixed(1)}R net. ${strategySummary}`
           : "Aucun signal complet clôturé sur les bougies disponibles.";
         $("btQuality").textContent =
           `Fréquence : ${signalsPerWeek.toFixed(1)}/semaine · ${signalsPerDay.toFixed(2)}/jour de marché · ${noSignalDays} jour(s) et ${noSignalWeeks} semaine(s) sans entrée. Qualité : ${quality}. Validation : 75 % développement en 3 blocs + purge 8 h + 25 % test final intact. Stratégies autorisées en direct : ${approvedStrategies.size ? [...approvedStrategies].join(", ") : "AUCUNE — MODE RECHERCHE"}. Sessions — ${sessionSummary || "aucune"}.`;
