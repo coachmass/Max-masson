@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#060a10" />
-    <title>Smart Gold V10.12 Robustness Lab</title>
+    <title>Smart Gold V10.13 Zones Subtiles</title>
     <style>
       :root {
         --bg: #05080d;
@@ -868,7 +868,7 @@
         </div>
       </section>
       <footer class="footer">
-        <span>Smart Gold V10.12 Robustness Lab · créé pour Maxime Masson</span
+        <span>Smart Gold V10.13 Zones Subtiles · créé pour Maxime Masson</span
         ><span class="green">● Signal sécurisé</span>
       </footer>
     </main>
@@ -2632,39 +2632,31 @@
           x.font = "11px Arial";
           x.fillText(val.toFixed(2), w - 52, yy - 3);
         }
-        const paintZone = (low, high, fill, stroke, label, active) => {
+        const paintZone = (low, high, fill, stroke, _label, active) => {
           if (![low, high].every(Number.isFinite)) return;
           const top = y(Math.max(low, high)),
             bottom = y(Math.min(low, high)),
             zoneH = Math.max(3, bottom - top),
-            labelText = `${label}  ${fmt(low)} – ${fmt(high)}${active ? "  ·  SURVEILLANCE" : ""}`;
+            zoneLeft = Math.max(pad, w * 0.3),
+            zoneRight = w - 58,
+            zoneW = Math.max(20, zoneRight - zoneLeft);
+          // Subtle recent-price rectangle: the candles stay readable and the
+          // detailed zone name/range remains in the dedicated side card.
           x.fillStyle = fill;
-          x.fillRect(0, top, w, zoneH);
+          x.fillRect(zoneLeft, top, zoneW, zoneH);
           x.strokeStyle = stroke;
-          x.lineWidth = active ? 2 : 1;
-          x.beginPath();
-          x.moveTo(0, top);
-          x.lineTo(w, top);
-          x.moveTo(0, bottom);
-          x.lineTo(w, bottom);
-          x.stroke();
-          x.font = "bold 11px Arial";
-          const textW = x.measureText(labelText).width;
-          const tagY = Math.max(3, Math.min(h - 21, top + 5));
-          x.fillStyle = active ? stroke : "rgba(7, 12, 20, 0.88)";
-          x.fillRect(8, tagY, textW + 16, 18);
-          x.strokeStyle = stroke;
-          x.strokeRect(8, tagY, textW + 16, 18);
-          x.fillStyle = active ? "#071019" : stroke;
-          x.fillText(labelText, 16, tagY + 13);
+          x.globalAlpha = active ? 0.8 : 0.48;
+          x.lineWidth = active ? 1.25 : 0.8;
+          x.strokeRect(zoneLeft, top, zoneW, zoneH);
+          x.globalAlpha = 1;
         };
         if (chartZones) {
           paintZone(
             chartZones.sellLow,
             chartZones.sellHigh,
             chartZones.sellActive
-              ? "rgba(255, 93, 115, 0.24)"
-              : "rgba(255, 93, 115, 0.12)",
+              ? "rgba(255, 93, 115, 0.105)"
+              : "rgba(255, 93, 115, 0.055)",
             "#ff5d73",
             "SELL ZONE",
             chartZones.sellActive,
@@ -2673,8 +2665,8 @@
             chartZones.buyLow,
             chartZones.buyHigh,
             chartZones.buyActive
-              ? "rgba(32, 230, 160, 0.24)"
-              : "rgba(32, 230, 160, 0.12)",
+              ? "rgba(32, 230, 160, 0.105)"
+              : "rgba(32, 230, 160, 0.055)",
             "#20e6a0",
             "BUY ZONE",
             chartZones.buyActive,
