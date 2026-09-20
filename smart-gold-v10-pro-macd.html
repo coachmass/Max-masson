@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#060a10" />
-    <title>Smart Gold V10.6 Pro Edge Lab</title>
+    <title>Smart Gold V10.7 Pro Reliability Lab</title>
     <style>
       :root {
         --bg: #05080d;
@@ -433,7 +433,7 @@
         <div class="brand">
           <div class="logo">Au</div>
           <div>
-            <div class="title">Smart Gold V10.6 Pro 👑</div>
+            <div class="title">Smart Gold V10.7 Pro 👑</div>
             <div class="sub">XAU/USD · ANALYSE & ENTRÉES · Maxime Masson</div>
             <div class="small">
               DISCIPLINE · ANALYSE · PROTECTION DU CAPITAL
@@ -471,7 +471,7 @@
           <div id="score" class="big">— / 100</div>
           <div class="scorebar"><i id="scoreBar"></i></div>
           <div class="small" style="margin-top: 8px">
-            Entrée seulement ≥ 75/100 + espace ≥ 3R
+            Seuil live validé historiquement + espace ≥ 3R
           </div>
         </div>
         <div id="decisionCard" class="metricCard decision wait">
@@ -509,18 +509,19 @@
         </div>
       </section>
       <section class="card">
-        <div class="sectionTitle">PATTERN LAB · COMPARATEUR R:R</div>
+        <div class="sectionTitle">RELIABILITY LAB · WIN RATE + ESPÉRANCE</div>
         <div class="small">
-          Le profil est choisi uniquement sur les premiers 75 % des données,
-          puis vérifié sans ajustement sur les derniers 25 %.
+          Le profil R:R, le breakeven et le score minimum sont choisis uniquement
+          sur les premiers 75 % des données, validés sur trois blocs chronologiques,
+          puis vérifiés sans ajustement sur les derniers 25 %.
         </div>
         <div class="tableWrap" aria-label="Comparaison hors échantillon des profils de sortie">
           <table class="validationTable">
             <thead>
               <tr>
                 <th>STRATÉGIE</th>
-                <th>R:R CHOISI SUR DÉVELOPPEMENT</th>
-                <th>CONTEXTE CHOISI SUR DÉVELOPPEMENT</th>
+                <th>PROFIL DE SORTIE</th>
+                <th>CONTEXTE + FILTRE</th>
                 <th>DÉVELOPPEMENT</th>
                 <th>TEST FINAL</th>
                 <th>TP TEST</th>
@@ -733,13 +734,15 @@
           <b>Validation :</b> résultats calculés uniquement sur bougies
           clôturées reçues d’OANDA. Une bougie touchant SL et TP est comptée en
           perte. L’entrée du backtest se fait à l’ouverture suivante, inclut un
-          spread bid/ask historique et un glissement prudent de 0,02R. Le SL
-          passe au breakeven après +1R, plutôt qu’après une distance fixe. Le
-          moteur ne simule qu’un seul trade à la fois pour éviter de gonfler
-          artificiellement les résultats. Les premiers 75 % de l’historique
-          servent au développement; les derniers 25 % restent un test final
-          hors échantillon. Une stratégie doit être positive dans les deux
-          périodes avant d’être autorisée en direct. Les performances passées
+          spread bid/ask historique et un glissement prudent de 0,02R. Le moteur
+          compare plusieurs cibles, seuils de breakeven et scores minimums, mais
+          les choisit uniquement dans la période de développement. Il ne simule
+          qu’un seul trade à la fois et purge huit heures autour de la séparation
+          pour éviter la fuite d’information. Les premiers 75 % sont aussi
+          divisés en trois blocs chronologiques; les derniers 25 % restent un test
+          final intact. Un profil doit conserver un win rate majoritaire, une
+          espérance positive et une stabilité multi-périodes avant d’être autorisé.
+          Les performances passées
           ne garantissent pas les résultats futurs.
         </div>
       </section>
@@ -747,15 +750,15 @@
         <div class="sectionTitle">RÈGLES DE PROTECTION DU CAPITAL</div>
         <div class="checks">
           <div class="check ok">✓ SL : structure + plafond 50 pips</div>
-          <div class="check ok">✓ Break-even : +1R</div>
-          <div class="check ok">✓ Entrée : score ≥75/100</div>
+          <div class="check ok">✓ Break-even : seuil adaptatif validé</div>
+          <div class="check ok">✓ Entrée : score minimum validé</div>
           <div class="check ok">✓ Espace structurel : ≥3R</div>
-          <div class="check ok">✓ TP1 adaptatif : 1,5R · 2R · 3R</div>
+          <div class="check ok">✓ TP1 adaptatif : 1,25R à 3R</div>
           <div class="check ok">✓ Extensions seulement après validation</div>
         </div>
       </section>
       <footer class="footer">
-        <span>Smart Gold V10.6 Pro · créé pour Maxime Masson</span
+        <span>Smart Gold V10.7 Pro · créé pour Maxime Masson</span
         ><span class="green">● Signal sécurisé</span>
       </footer>
     </main>
@@ -1422,7 +1425,8 @@
           strategyApproved =
             approvedStrategies.has(signal.strategy) &&
             approvedPattern?.side === side &&
-            approvedPattern.sessions.includes(currentSession),
+            approvedPattern.sessions.includes(currentSession) &&
+            score >= approvedPattern.minScore,
           valid = signal.valid && feedFresh && validationReady && strategyApproved,
           globalTrend = h1Trend === h4Trend ? h1Trend : "neutral";
         $("price").textContent = fmt(p);
@@ -1509,7 +1513,9 @@
           tps = tpRs.map((x) => entry + sign * risk * x);
         $("entry").textContent = fmt(entry);
         $("sl").textContent = fmt(sl);
-        $("be").textContent = fmt(entry + sign * risk);
+        $("be").textContent = fmt(
+          entry + sign * risk * (approvedPattern?.beTriggerR || 1),
+        );
         $("rr").textContent = "1:" + fmt(space / risk);
         $("tp1").textContent = fmt(tps[0]);
         $("tp2").textContent = fmt(tps[1]);
@@ -1538,7 +1544,10 @@
           ["Réaction", side === "BUY" ? bullReject : bearReject],
           ["Espace ≥3R", side === "BUY" ? rrBuy >= 3 : rrSell >= 3],
           ["ADX / force", signal.adx >= (signal.regime === "RANGE" ? 0 : 20)],
-          ["Pattern R:R + session + sens validé", validationReady && strategyApproved],
+          [
+            "Pattern R:R + BE + score + session + sens validé",
+            validationReady && strategyApproved,
+          ],
           ["Données fraîches et clôturées", feedFresh],
         ];
         $("checks").innerHTML = checks
@@ -1553,14 +1562,14 @@
           $("decision").className = "big " + (side === "BUY" ? "green" : "red");
           $("decision").textContent = side;
           $("decisionText").textContent =
-            `${signal.strategy} · ${approvedPattern.label} · 1:${approvedPattern.targetR.toFixed(1)} validé sur bougie clôturée.`;
+            `${signal.strategy} · ${approvedPattern.label} · score ≥${approvedPattern.minScore} · BE +${approvedPattern.beTriggerR.toFixed(2)}R · cible 1:${approvedPattern.targetR.toFixed(2)} validée.`;
           $("executionGate").className = "card executionGate ready";
           $("executionState").className = side === "BUY" ? "green" : "red";
           $("executionState").textContent = `SIGNAL ${side} VALIDÉ`;
           $("executionGuide").textContent =
             `Vérifier le prix d’entrée ${fmt(entry)}, placer le SL ${fmt(sl)} et respecter le risque prévu avant toute exécution.`;
           $("planText").textContent =
-            `${signal.strategy} · ${approvedPattern.label} · Signal ${side} validé. Entry ${fmt(entry)} · SL ${fmt(sl)} · cible validée 1:${approvedPattern.targetR.toFixed(1)}.`;
+            `${signal.strategy} · ${approvedPattern.label} · Signal ${side} validé. Entry ${fmt(entry)} · SL ${fmt(sl)} · BE +${approvedPattern.beTriggerR.toFixed(2)}R · cible 1:${approvedPattern.targetR.toFixed(2)}.`;
         } else {
           setWait(
             feedFresh
@@ -1646,10 +1655,17 @@
               .slice(0, 10);
           },
           sessionName = marketSession,
-          simulateProfile = (startIndex, side, entry, risk, targetR) => {
+          simulateProfile = (
+            startIndex,
+            side,
+            entry,
+            risk,
+            targetR,
+            beTriggerR,
+          ) => {
             const sl = entry - side * risk,
               tp = entry + side * risk * targetR,
-              beTrigger = entry + side * risk,
+              beTrigger = entry + side * risk * beTriggerR,
               lastBar = Math.min(r.length - 1, startIndex + maxHoldBars);
             let beArmed = false,
               outcomeType = "TIMEOUT",
@@ -1758,24 +1774,28 @@
             beTrigger = entry + side * signal.risk,
             entryTime = r[i + 1].t,
             session = sessionName(entryTime);
-          for (const targetR of [1.5, 2, 3]) {
-            const profile = simulateProfile(
-              i + 1,
-              side,
-              entry,
-              signal.risk,
-              targetR,
-            );
-            profileRecords.push({
-              strategy: signal.strategy,
-              targetR,
-              entryTime,
-              session,
-              side: signal.side,
-              score: signal.score,
-              adx: signal.adx,
-              ...profile,
-            });
+          for (const targetR of [1.25, 1.5, 2, 2.5, 3]) {
+            for (const beTriggerR of [0.75, 1, 1.25, 1.5]) {
+              const profile = simulateProfile(
+                i + 1,
+                side,
+                entry,
+                signal.risk,
+                targetR,
+                beTriggerR,
+              );
+              profileRecords.push({
+                strategy: signal.strategy,
+                targetR,
+                beTriggerR,
+                entryTime,
+                session,
+                side: signal.side,
+                score: signal.score,
+                adx: signal.adx,
+                ...profile,
+              });
+            }
           }
           signalDays.add(dayKey(entryTime));
           signalWeeks.add(weekKey(entryTime));
@@ -1919,6 +1939,7 @@
             expectancy: records.length ? equity / records.length : 0,
             maxDrawdown,
             maxLossStreak,
+            winRate: records.length ? winCount / records.length : 0,
           };
         },
           medianOf = (values) => {
@@ -2021,165 +2042,236 @@
             </tr>`;
           })
           .join("");
-        const rrLabResults = strategyNames.map((name) => {
-          const candidates = [1.5, 2, 3].map((targetR) => {
-            const records = profileRecords.filter(
-                (x) => x.strategy === name && x.targetR === targetR,
+        const wilsonLower = (wins, total, z = 1.28) => {
+            if (!total) return 0;
+            const p = wins / total,
+              z2 = z * z,
+              denominator = 1 + z2 / total,
+              centre = p + z2 / (2 * total),
+              margin =
+                z *
+                Math.sqrt(
+                  (p * (1 - p) + z2 / (4 * total)) / total,
+                );
+            return Math.max(0, (centre - margin) / denominator);
+          },
+          purgeMs = maxHoldBars * barMs,
+          developmentEnd = splitTime - purgeMs,
+          developmentStart = r[0].t,
+          foldSize = (developmentEnd - developmentStart) / 3,
+          contextDefinitions = [
+            {
+              label: "LONDRES · BUY",
+              sessions: ["LONDRES"],
+              side: "BUY",
+              matches: (x) => x.session === "LONDRES" && x.side === "BUY",
+            },
+            {
+              label: "LONDRES · SELL",
+              sessions: ["LONDRES"],
+              side: "SELL",
+              matches: (x) => x.session === "LONDRES" && x.side === "SELL",
+            },
+            {
+              label: "NEW YORK · BUY",
+              sessions: ["NEW YORK"],
+              side: "BUY",
+              matches: (x) => x.session === "NEW YORK" && x.side === "BUY",
+            },
+            {
+              label: "NEW YORK · SELL",
+              sessions: ["NEW YORK"],
+              side: "SELL",
+              matches: (x) => x.session === "NEW YORK" && x.side === "SELL",
+            },
+            {
+              label: "LONDRES + NY · BUY",
+              sessions: ["LONDRES", "NEW YORK"],
+              side: "BUY",
+              matches: (x) =>
+                ["LONDRES", "NEW YORK"].includes(x.session) &&
+                x.side === "BUY",
+            },
+            {
+              label: "LONDRES + NY · SELL",
+              sessions: ["LONDRES", "NEW YORK"],
+              side: "SELL",
+              matches: (x) =>
+                ["LONDRES", "NEW YORK"].includes(x.session) &&
+                x.side === "SELL",
+            },
+          ],
+          rrLabResults = strategyNames.map((name) => {
+            const candidates = [];
+            for (const targetR of [1.25, 1.5, 2, 2.5, 3]) {
+              for (const beTriggerR of [0.75, 1, 1.25, 1.5]) {
+                for (const minScore of [75, 80, 85, 90]) {
+                  for (const definition of contextDefinitions) {
+                    const records = profileRecords.filter(
+                        (x) =>
+                          x.strategy === name &&
+                          x.targetR === targetR &&
+                          x.beTriggerR === beTriggerR &&
+                          x.score >= minScore &&
+                          definition.matches(x),
+                      ),
+                      developmentRecords = records.filter(
+                        (x) => x.entryTime < developmentEnd,
+                      ),
+                      finalRecords = records.filter(
+                        (x) => x.entryTime >= splitTime,
+                      ),
+                      development = metricsFor(developmentRecords),
+                      finalTest = metricsFor(finalRecords),
+                      folds = [0, 1, 2].map((fold) =>
+                        metricsFor(
+                          developmentRecords.filter((x) => {
+                            const low = developmentStart + fold * foldSize,
+                              high =
+                                fold === 2
+                                  ? developmentEnd
+                                  : developmentStart + (fold + 1) * foldSize;
+                            return x.entryTime >= low && x.entryTime < high;
+                          }),
+                        ),
+                      ),
+                      qualifiedFolds = folds.filter((x) => x.trades >= 5),
+                      positiveFolds = qualifiedFolds.filter(
+                        (x) => x.expectancy > 0 && x.pf >= 1.05,
+                      ).length,
+                      worstFoldExpectancy = qualifiedFolds.length
+                        ? Math.min(...qualifiedFolds.map((x) => x.expectancy))
+                        : -Infinity,
+                      developmentLcb = wilsonLower(
+                        development.wins,
+                        development.trades,
+                      ),
+                      selectionScore =
+                        developmentLcb * 2 +
+                        development.expectancy -
+                        development.maxDrawdown * 0.015 +
+                        positiveFolds * 0.05;
+                    candidates.push({
+                      targetR,
+                      beTriggerR,
+                      minScore,
+                      label: definition.label,
+                      sessions: definition.sessions,
+                      side: definition.side,
+                      development,
+                      finalTest,
+                      finalRecords,
+                      folds,
+                      qualifiedFolds: qualifiedFolds.length,
+                      positiveFolds,
+                      worstFoldExpectancy,
+                      developmentLcb,
+                      selectionScore,
+                    });
+                  }
+                }
+              }
+            }
+            candidates.sort(
+              (a, b) =>
+                Number(
+                  b.development.trades >= 24 &&
+                    b.development.winRate >= 0.5 &&
+                    b.qualifiedFolds >= 2 &&
+                    b.positiveFolds >= 2,
+                ) -
+                  Number(
+                    a.development.trades >= 24 &&
+                      a.development.winRate >= 0.5 &&
+                      a.qualifiedFolds >= 2 &&
+                      a.positiveFolds >= 2,
+                  ) ||
+                b.selectionScore - a.selectionScore ||
+                b.development.trades - a.development.trades,
+            );
+            const selected = candidates[0],
+              finalLcb = wilsonLower(
+                selected.finalTest.wins,
+                selected.finalTest.trades,
               ),
-              developmentRecords = records.filter(
-                (x) => x.entryTime < splitTime,
+              stableDevelopment =
+                selected.development.trades >= 24 &&
+                selected.development.winRate >= 0.5 &&
+                selected.development.pnl > 0 &&
+                selected.development.pf >= 1.25 &&
+                selected.development.expectancy > 0 &&
+                selected.qualifiedFolds >= 2 &&
+                selected.positiveFolds >= 2 &&
+                selected.worstFoldExpectancy > -0.15,
+              robust =
+                stableDevelopment &&
+                selected.finalTest.trades >= 8 &&
+                selected.finalTest.winRate >= 0.5 &&
+                selected.finalTest.pnl > 0 &&
+                selected.finalTest.pf >= 1.15 &&
+                selected.finalTest.expectancy > 0 &&
+                finalLcb >= 0.3 &&
+                selected.finalTest.maxDrawdown <= 6,
+              medianMfe = medianOf(
+                selected.finalRecords.map((x) => x.maxFavorableR),
               ),
-              finalRecords = records.filter(
-                (x) => x.entryTime >= splitTime,
+              medianMae = medianOf(
+                selected.finalRecords.map((x) => x.maxAdverseR),
               );
+            if (robust) {
+              approvedStrategies.add(name);
+              approvedPatterns.set(name, {
+                targetR: selected.targetR,
+                beTriggerR: selected.beTriggerR,
+                minScore: selected.minScore,
+                label: selected.label,
+                sessions: selected.sessions,
+                side: selected.side,
+                developmentLcb: selected.developmentLcb,
+                finalLcb,
+              });
+            }
             return {
-              targetR,
-              records,
-              development: metricsFor(developmentRecords),
-              finalTest: metricsFor(finalRecords),
-              finalRecords,
+              name,
+              ...selected,
+              finalLcb,
+              robust,
+              medianMfe,
+              medianMae,
             };
           });
-          candidates.sort(
-            (a, b) =>
-              Number(b.development.trades >= 35) -
-                Number(a.development.trades >= 35) ||
-              b.development.expectancy - a.development.expectancy,
-          );
-          const selected = candidates[0],
-            contextDefinitions = [
-              {
-                label: "LONDRES · BUY",
-                sessions: ["LONDRES"],
-                side: "BUY",
-                matches: (x) => x.session === "LONDRES" && x.side === "BUY",
-              },
-              {
-                label: "LONDRES · SELL",
-                sessions: ["LONDRES"],
-                side: "SELL",
-                matches: (x) => x.session === "LONDRES" && x.side === "SELL",
-              },
-              {
-                label: "NEW YORK · BUY",
-                sessions: ["NEW YORK"],
-                side: "BUY",
-                matches: (x) => x.session === "NEW YORK" && x.side === "BUY",
-              },
-              {
-                label: "NEW YORK · SELL",
-                sessions: ["NEW YORK"],
-                side: "SELL",
-                matches: (x) => x.session === "NEW YORK" && x.side === "SELL",
-              },
-              {
-                label: "LONDRES + NY · BUY",
-                sessions: ["LONDRES", "NEW YORK"],
-                side: "BUY",
-                matches: (x) =>
-                  ["LONDRES", "NEW YORK"].includes(x.session) &&
-                  x.side === "BUY",
-              },
-              {
-                label: "LONDRES + NY · SELL",
-                sessions: ["LONDRES", "NEW YORK"],
-                side: "SELL",
-                matches: (x) =>
-                  ["LONDRES", "NEW YORK"].includes(x.session) &&
-                  x.side === "SELL",
-              },
-            ],
-            contextCandidates = contextDefinitions.map((definition) => {
-              const records = selected.records.filter(definition.matches),
-                developmentRecords = records.filter(
-                  (x) => x.entryTime < splitTime,
-                ),
-                finalRecords = records.filter(
-                  (x) => x.entryTime >= splitTime,
-                );
-              return {
-                label: definition.label,
-                sessions: definition.sessions,
-                side: definition.side,
-                development: metricsFor(developmentRecords),
-                finalTest: metricsFor(finalRecords),
-                finalRecords,
-              };
-            });
-          contextCandidates.sort(
-            (a, b) =>
-              Number(b.development.trades >= 20) -
-                Number(a.development.trades >= 20) ||
-              (a.development.trades < 20 && b.development.trades < 20
-                ? b.development.trades - a.development.trades
-                : b.development.expectancy - a.development.expectancy),
-          );
-          const selectedContext = contextCandidates[0],
-            robust =
-              selected.development.trades >= 35 &&
-              selectedContext.development.trades >= 20 &&
-              selectedContext.development.pnl > 0 &&
-              selectedContext.development.pf >= 1.25 &&
-              selectedContext.finalTest.trades >= 7 &&
-              selectedContext.finalTest.pnl > 0 &&
-              selectedContext.finalTest.pf >= 1.15 &&
-              selectedContext.finalTest.expectancy > 0,
-            medianMfe = medianOf(
-              selectedContext.finalRecords.map((x) => x.maxFavorableR),
-            ),
-            medianMae = medianOf(
-              selectedContext.finalRecords.map((x) => x.maxAdverseR),
-            );
-          if (robust) {
-            approvedStrategies.add(name);
-            approvedPatterns.set(name, {
-              targetR: selected.targetR,
-              label: selectedContext.label,
-              sessions: selectedContext.sessions,
-              side: selectedContext.side,
-            });
-          }
-          return {
-            name,
-            targetR: selected.targetR,
-            context: selectedContext.label,
-            development: selectedContext.development,
-            finalTest: selectedContext.finalTest,
-            robust,
-            medianMfe,
-            medianMae,
-          };
-        });
         $("rrLabRows").innerHTML = rrLabResults
           .map(
             ({
               name,
               targetR,
-              context,
+              beTriggerR,
+              minScore,
+              label,
               development,
               finalTest,
+              positiveFolds,
+              qualifiedFolds,
+              finalLcb,
               robust,
               medianMfe,
               medianMae,
             }) => {
               const insufficient =
-                  development.trades < 20 || finalTest.trades < 7,
+                  development.trades < 24 || finalTest.trades < 8,
                 verdict = robust
-                  ? "ROBUSTE HORS ÉCHANTILLON"
+                  ? "ROBUSTE MULTI-PÉRIODES"
                   : insufficient
                     ? "PLUS DE DONNÉES REQUISES"
                     : "NON CONFIRMÉ",
-                verdictClass = robust ? "green" : "red",
-                testHitRate = finalTest.trades
-                  ? (finalTest.wins / finalTest.trades) * 100
-                  : 0;
+                verdictClass = robust ? "green" : "red";
               return `<tr>
                 <td><b>${name}</b></td>
-                <td><b>1:${targetR.toFixed(1)}</b></td>
-                <td>${context}</td>
-                <td>${metricText(development)}</td>
-                <td>${metricText(finalTest)}</td>
-                <td>${testHitRate.toFixed(1)}%</td>
+                <td><b>1:${targetR.toFixed(2)}</b> · BE +${beTriggerR.toFixed(2)}R</td>
+                <td>${label} · score ≥${minScore}</td>
+                <td>${metricText(development)} · WR ${(development.winRate * 100).toFixed(1)}%</td>
+                <td>${metricText(finalTest)} · WR ${(finalTest.winRate * 100).toFixed(1)}%</td>
+                <td>${positiveFolds}/${qualifiedFolds} blocs positifs · borne WR ${(finalLcb * 100).toFixed(1)}%</td>
                 <td>${medianMfe.toFixed(2)}R / ${medianMae.toFixed(2)}R</td>
                 <td><span class="validationBadge ${verdictClass}">${verdict}</span></td>
               </tr>`;
@@ -2187,10 +2279,10 @@
           )
           .join("");
         $("btStatus").textContent = n
-            ? `V10.6 Edge Lab · OANDA bid/ask · M15 avec contexte H1/4H sur ${(days / 365.25).toFixed(2)} an · ${n} trades · ${wins} TP1 · ${losses} SL · ${breakevens} BE · ${timeouts} sorties après 8 h · ${pnl.toFixed(1)}R net. ${strategySummary}`
+            ? `V10.7 Reliability Lab · OANDA bid/ask · M15 avec contexte H1/4H sur ${(days / 365.25).toFixed(2)} an · ${n} trades · ${wins} TP1 · ${losses} SL · ${breakevens} BE · ${timeouts} sorties après 8 h · ${pnl.toFixed(1)}R net. ${strategySummary}`
           : "Aucun signal complet clôturé sur les bougies disponibles.";
         $("btQuality").textContent =
-          `Fréquence : ${signalsPerWeek.toFixed(1)}/semaine · ${signalsPerDay.toFixed(2)}/jour de marché · ${noSignalDays} jour(s) et ${noSignalWeeks} semaine(s) sans entrée. Qualité : ${quality}. Validation : 75 % développement + 25 % test final intact. Stratégies autorisées en direct : ${approvedStrategies.size ? [...approvedStrategies].join(", ") : "AUCUNE — MODE RECHERCHE"}. Sessions — ${sessionSummary || "aucune"}.`;
+          `Fréquence : ${signalsPerWeek.toFixed(1)}/semaine · ${signalsPerDay.toFixed(2)}/jour de marché · ${noSignalDays} jour(s) et ${noSignalWeeks} semaine(s) sans entrée. Qualité : ${quality}. Validation : 75 % développement en 3 blocs + purge 8 h + 25 % test final intact. Stratégies autorisées en direct : ${approvedStrategies.size ? [...approvedStrategies].join(", ") : "AUCUNE — MODE RECHERCHE"}. Sessions — ${sessionSummary || "aucune"}.`;
         validationReady = true;
         backtestComputed = true;
         setTimeout(() => analyze(), 0);
@@ -2342,4 +2434,3 @@
   </body>
 </html>
 
-<!-- redeploy-v10.6 2026-09-20T04:47:57.426Z -->
