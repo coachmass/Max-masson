@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#060a10" />
-    <title>Smart Gold V10.16 Replay Causal</title>
+    <title>Smart Gold V10.17 Espérance Nette</title>
     <style>
       :root {
         --bg: #05080d;
@@ -502,7 +502,7 @@
         <div class="brand">
           <div class="logo">Au</div>
           <div>
-            <div class="title">Smart Gold V10.16 Pro 👑</div>
+            <div class="title">Smart Gold V10.17 Pro 👑</div>
             <div class="sub">XAU/USD · ANALYSE & ENTRÉES · Maxime Masson</div>
             <div class="small">
               DISCIPLINE · ANALYSE · PROTECTION DU CAPITAL
@@ -578,7 +578,7 @@
         </div>
       </section>
       <section class="card" id="momentumCandidateCard">
-        <div class="sectionTitle">CANDIDAT FIGÉ · REPLAY CAUSAL</div>
+        <div class="sectionTitle">CANDIDAT ESPÉRANCE · REPLAY CAUSAL</div>
         <div class="dashboard" style="margin-top: 8px">
           <div class="metricCard">
             <div class="muted">AUTOMATISATION</div>
@@ -594,19 +594,21 @@
         <div class="small essentialHint">
           Replay gauche à droite : 82 trades audités, 0 donnée future utilisée.
           Filtre CPI/NFP figé et stop derrière le sweep + 0,15 ATR.
-          Le profil haute précision reste positif dans les trois blocs sous stress.
+          Le classement privilégie maintenant l’espérance, le profit factor et le drawdown; le win rate est secondaire.
         </div>
         <details class="inlineDetails">
           <summary>Voir la validation du candidat</summary>
           <div class="small">
             Le replay causal confirme 0 violation sur 82 trades : confirmation clôturée
-            avant l’entrée, H1/H4 clôturés et exécution bid/ask. Le profil sélectionné uniquement
-            sur le développement exige une impulsion ≥0,55 ATR, une clôture forte ≥60 % et une
-            tendance H1 ≥0,25 ATR. Résultat : 59 trades, 49,2 % de réussite, +18,27R,
-            PF 1,61 et +0,31R/trade. Sous retard, glissement et coûts : +15,60R,
-            PF 1,52 et +0,26R/trade, avec trois blocs positifs. La variante au meilleur
-            win rate brut atteint 55,8 % à 1R, mais son avantage disparaît sous stress;
-            elle est rejetée. La cible de 80 % n’est donc pas encore validée.
+            avant l’entrée, H1/H4 clôturés et exécution bid/ask. Le candidat sélectionné
+            uniquement sur le développement exige une clôture forte ≥60 %, une tendance
+            H1 ≥0,25 ATR, un stop derrière le sweep +0,15 ATR et un objectif 2R.
+            Développement : 65 trades, +19,99R, PF 1,60 et +0,31R/trade.
+            Sous retard, glissement et coûts : 64 trades, +18,48R, PF 1,58,
+            +0,29R/trade et drawdown 3,47R, avec trois blocs positifs.
+            À 100 $ risqués par trade, le test sous stress équivaut historiquement à
+            environ +1 848 $, +28,87 $ par trade et 347 $ de drawdown. Ces montants
+            illustrent le ratio risque/rendement; ils ne garantissent pas un résultat futur.
             Prochaine preuve : forward paper sans changer les paramètres. Aucun ordre réel n’est autorisé.
           </div>
         </details>
@@ -2585,7 +2587,7 @@
           )
           .join("");
         $("btStatus").textContent = n
-            ? `Moteur live V10.16 · OANDA bid/ask · M15 avec contexte H1/4H sur ${(days / 365.25).toFixed(2)} an · ${n} trades · ${wins} TP1 · ${losses} SL · ${breakevens} BE · ${timeouts} sorties après 8 h · ${pnl.toFixed(1)}R net. ${strategySummary}`
+            ? `Moteur live V10.17 · OANDA bid/ask · M15 avec contexte H1/4H sur ${(days / 365.25).toFixed(2)} an · ${n} trades · ${wins} TP1 · ${losses} SL · ${breakevens} BE · ${timeouts} sorties après 8 h · ${pnl.toFixed(1)}R net. ${strategySummary}`
           : "Aucun signal complet clôturé sur les bougies disponibles.";
         $("btQuality").textContent =
           `Fréquence : ${signalsPerWeek.toFixed(1)}/semaine · ${signalsPerDay.toFixed(2)}/jour de marché · ${noSignalDays} jour(s) et ${noSignalWeeks} semaine(s) sans entrée. Qualité : ${quality}. Validation : 75 % développement en 3 blocs + purge 8 h + 25 % test final intact. Stratégies autorisées en direct : ${approvedStrategies.size ? [...approvedStrategies].join(", ") : "AUCUNE — MODE RECHERCHE"}. Sessions — ${sessionSummary || "aucune"}.`;
