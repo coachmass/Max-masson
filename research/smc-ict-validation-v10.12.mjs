@@ -81,14 +81,19 @@ function bias(p, i) {
 const clocks = {
   ny: new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", hour: "2-digit", hourCycle: "h23" }),
   london: new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", hour: "2-digit", hourCycle: "h23" }),
+  toronto: new Intl.DateTimeFormat("en-CA", { timeZone: "America/Toronto", hour: "2-digit", hourCycle: "h23" }),
 };
 function sessionAt(t) {
   const ny = +clocks.ny.format(new Date(t)), london = +clocks.london.format(new Date(t));
+  const toronto = +clocks.toronto.format(new Date(t));
+  if (toronto >= 20 && toronto < 23) return "ASIA_QC";
   if (ny >= 8 && ny < 13) return "NY";
   if (london >= 8 && london < 13) return "LONDON";
   return "OTHER";
 }
-const liquid = t => sessionAt(t) !== "OTHER";
+// Preserve the original generic universe (London + New York). Asia is only
+// enabled for explicitly session-scoped research so it cannot alter earlier results.
+const liquid = t => ["NY", "LONDON"].includes(sessionAt(t));
 
 // Fixed before looking at the result: block new entries from 30 minutes before
 // until 45 minutes after a scheduled high-impact USD release. Release times
@@ -250,8 +255,12 @@ function run(cfg, stress = {}) {
   const trades = [];
   const blockedNews = { CPI_NFP: 0, FOMC: 0 };
   for (let i = 60; i < rows.length - cfg.confirmBars - 2; i++) {
-    if (!p5.a[i] || !liquid(rows[i].t)) continue;
-    if (cfg.sessionFilter && sessionAt(rows[i].t) !== cfg.sessionFilter) continue;
+    const inEntrySession = t => cfg.sessionFilter === "FULL_DAY"
+      ? true
+      : cfg.sessionFilter
+        ? sessionAt(t) === cfg.sessionFilter
+        : liquid(t);
+    if (!p5.a[i] || !inEntrySession(rows[i].t)) continue;
     const b15 = bias(p15, map15[i]), b1 = bias(p1, map1[i]), b4 = bias(p4, map4[i]);
     // A continuation requires H1/H4 agreement. A shorter retracement only needs
     // a clear H1 bias to trade against; requiring an already-reversed M15 trend
@@ -304,7 +313,7 @@ function run(cfg, stress = {}) {
       }
     }
     const entryIndex = confirm + 1 + (stress.delayBars || 0);
-    if (confirm < 0 || entryIndex >= rows.length || !liquid(rows[entryIndex].t)) continue;
+    if (confirm < 0 || entryIndex >= rows.length || !inEntrySession(rows[entryIndex].t)) continue;
     if (stress.newsFilter) {
       const event = newsAt(rows[entryIndex].t);
       if (event) { blockedNews[event.kind]++; continue; }
@@ -484,6 +493,96 @@ const precisionStudy = precisionConfigs.map(cfg => {
     a.stressedDevelopment.dd - b.stressedDevelopment.dd ||
     b.winRate90LowerBound - a.winRate90LowerBound
   );
+const asiaConfigs = [];
+for (const family of ["CONTINUATION", "RETRACEMENT"])
+for (const side of [1, -1])
+for (const sweepBars of [12, 24])
+for (const confirmBars of [3, 6])
+for (const targetR of family === "CONTINUATION" ? [1.5, 2] : [1, 1.5])
+  asiaConfigs.push({
+    family,
+    side,
+    sweepBars,
+    confirmBars,
+    targetR,
+    exitMode: "FIXED",
+    sessionFilter: "ASIA_QC",
+    stopAtrBuffer: 0.15,
+  });
+const asiaAll = asiaConfigs.map(cfg => {
+  const base = run(cfg, {});
+  return { cfg, development: base.dev, positiveFolds: base.positiveFolds };
+}).sort((a, b) => b.development.exp - a.development.exp || b.development.pf - a.development.pf);
+const asiaDevelopment = asiaAll.filter(x => x.development.n >= 30 && x.development.exp > 0 && x.positiveFolds >= 2)
+  .sort((a, b) =>
+    b.positiveFolds - a.positiveFolds ||
+    b.development.exp - a.development.exp ||
+    b.development.pf - a.development.pf ||
+    a.development.dd - b.development.dd
+  );
+const asiaStress = asiaDevelopment.slice(0, 6).map(candidate => {
+  const stressed = run(candidate.cfg, { delayBars: 1, slipAtr: 0.05, extraCost: 0.03 });
+  return {
+    ...candidate,
+    stressedDevelopment: stressed.dev,
+    stressedPositiveFolds: stressed.positiveFolds,
+  };
+}).sort((a, b) =>
+  b.stressedPositiveFolds - a.stressedPositiveFolds ||
+  b.stressedDevelopment.exp - a.stressedDevelopment.exp ||
+  b.stressedDevelopment.pf - a.stressedDevelopment.pf ||
+  a.stressedDevelopment.dd - b.stressedDevelopment.dd
+);
+const londonConfigs = asiaConfigs.map(cfg => ({ ...cfg, sessionFilter: "LONDON" }));
+const londonAll = londonConfigs.map(cfg => {
+  const base = run(cfg, {});
+  return { cfg, development: base.dev, positiveFolds: base.positiveFolds };
+}).sort((a, b) => b.development.exp - a.development.exp || b.development.pf - a.development.pf);
+const londonDevelopment = londonAll.filter(x => x.development.n >= 30 && x.development.exp > 0 && x.positiveFolds >= 2)
+  .sort((a, b) =>
+    b.positiveFolds - a.positiveFolds ||
+    b.development.exp - a.development.exp ||
+    b.development.pf - a.development.pf ||
+    a.development.dd - b.development.dd
+  );
+const londonStress = londonDevelopment.slice(0, 6).map(candidate => {
+  const stressed = run(candidate.cfg, { delayBars: 1, slipAtr: 0.05, extraCost: 0.03 });
+  return {
+    ...candidate,
+    stressedDevelopment: stressed.dev,
+    stressedPositiveFolds: stressed.positiveFolds,
+  };
+}).sort((a, b) =>
+  b.stressedPositiveFolds - a.stressedPositiveFolds ||
+  b.stressedDevelopment.exp - a.stressedDevelopment.exp ||
+  b.stressedDevelopment.pf - a.stressedDevelopment.pf ||
+  a.stressedDevelopment.dd - b.stressedDevelopment.dd
+);
+const fullDayConfigs = asiaConfigs.map(cfg => ({ ...cfg, sessionFilter: "FULL_DAY" }));
+const fullDayAll = fullDayConfigs.map(cfg => {
+  const base = run(cfg, {});
+  return { cfg, development: base.dev, positiveFolds: base.positiveFolds };
+}).sort((a, b) => b.development.exp - a.development.exp || b.development.pf - a.development.pf);
+const fullDayDevelopment = fullDayAll.filter(x => x.development.n >= 40 && x.development.exp > 0 && x.positiveFolds >= 2)
+  .sort((a, b) =>
+    b.positiveFolds - a.positiveFolds ||
+    b.development.exp - a.development.exp ||
+    b.development.pf - a.development.pf ||
+    a.development.dd - b.development.dd
+  );
+const fullDayStress = fullDayDevelopment.slice(0, 6).map(candidate => {
+  const stressed = run(candidate.cfg, { delayBars: 1, slipAtr: 0.05, extraCost: 0.03 });
+  return {
+    ...candidate,
+    stressedDevelopment: stressed.dev,
+    stressedPositiveFolds: stressed.positiveFolds,
+  };
+}).sort((a, b) =>
+  b.stressedPositiveFolds - a.stressedPositiveFolds ||
+  b.stressedDevelopment.exp - a.stressedDevelopment.exp ||
+  b.stressedDevelopment.pf - a.stressedDevelopment.pf ||
+  a.stressedDevelopment.dd - b.stressedDevelopment.dd
+);
 console.log(JSON.stringify({
   bars: rows.length,
   start: new Date(rows[0].t).toISOString(),
@@ -559,5 +658,33 @@ console.log(JSON.stringify({
     bestObservedWinRate: [...precisionStudy]
       .sort((a, b) => b.development.wr - a.development.wr || b.development.n - a.development.n)[0] || null,
     candidates: precisionStudy.slice(0, 10),
+  },
+  asiaQuebecStudy: {
+    session: "20:00-23:00_AMERICA_TORONTO",
+    daylightSavingAware: true,
+    selectionUsesFinalTest: false,
+    tested: asiaConfigs.length,
+    developmentQualified: asiaDevelopment.length,
+    bestObservedBeforeQualification: asiaAll[0] || null,
+    candidatesUnderStress: asiaStress,
+  },
+  londonStudy: {
+    session: "08:00-13:00_EUROPE_LONDON",
+    daylightSavingAware: true,
+    selectionUsesFinalTest: false,
+    tested: londonConfigs.length,
+    developmentQualified: londonDevelopment.length,
+    bestObservedBeforeQualification: londonAll[0] || null,
+    candidatesUnderStress: londonStress,
+  },
+  fullDayStudy: {
+    session: "NO_ENTRY_TIME_FILTER",
+    positionsMayCrossSessions: true,
+    maxHoldHours: HOLD * 5 / 60,
+    selectionUsesFinalTest: false,
+    tested: fullDayConfigs.length,
+    developmentQualified: fullDayDevelopment.length,
+    bestObservedBeforeQualification: fullDayAll[0] || null,
+    candidatesUnderStress: fullDayStress,
   },
 }, null, 2));
