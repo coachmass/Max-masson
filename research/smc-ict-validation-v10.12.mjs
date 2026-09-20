@@ -262,6 +262,14 @@ function run(cfg, stress = {}) {
     if (!dominant) continue;
     if (cfg.family === "CONTINUATION" && cfg.side !== dominant) continue;
     if (cfg.family === "RETRACEMENT" && cfg.side === dominant) continue;
+    if (cfg.minH1TrendAtr) {
+      const h1Index = map1[i];
+      const h1Atr = p1.a[h1Index];
+      const h1TrendAtr = h1Atr
+        ? Math.abs(p1.e20[h1Index] - p1.e50[h1Index]) / h1Atr
+        : 0;
+      if (h1TrendAtr < cfg.minH1TrendAtr) continue;
+    }
 
     const prior = rows.slice(i - cfg.sweepBars, i);
     const level = cfg.side === 1 ? Math.min(...prior.map(x => x.l)) : Math.max(...prior.map(x => x.h));
@@ -283,10 +291,17 @@ function run(cfg, stress = {}) {
       : Math.min(...rows.slice(i - 3, i + 1).map(x => x.l));
     let confirm = -1;
     for (let j = i + 1; j <= i + cfg.confirmBars; j++) {
-      const displacement = Math.abs(rows[j].c - rows[j].o) >= p5.a[j] * 0.35;
+      const displacement = Math.abs(rows[j].c - rows[j].o) >= p5.a[j] * (cfg.displacementMinAtr ?? 0.35);
       const bos = cfg.side === 1 ? rows[j].c > localStructure : rows[j].c < localStructure;
       const candle = cfg.side === 1 ? rows[j].c > rows[j].o : rows[j].c < rows[j].o;
-      if (bos && candle && displacement) { confirm = j; break; }
+      const candleRange = rows[j].h - rows[j].l;
+      const closeStrength = candleRange
+        ? (cfg.side === 1 ? rows[j].c - rows[j].l : rows[j].h - rows[j].c) / candleRange
+        : 0;
+      if (bos && candle && displacement && closeStrength >= (cfg.minCloseStrength ?? 0)) {
+        confirm = j;
+        break;
+      }
     }
     const entryIndex = confirm + 1 + (stress.delayBars || 0);
     if (confirm < 0 || entryIndex >= rows.length || !liquid(rows[entryIndex].t)) continue;
@@ -431,6 +446,42 @@ const replayTrace = frozenCausalReplay.trades.slice(-5).map(trade => ({
   exitClosed: new Date(trade.exitTime).toISOString(),
   resultR: trade.r,
 }));
+function wilsonLower(wins, total, z = 1.645) {
+  if (!total) return 0;
+  const p = wins / total, z2 = z * z;
+  return (p + z2 / (2 * total) - z * Math.sqrt((p * (1 - p) + z2 / (4 * total)) / total)) / (1 + z2 / total);
+}
+const precisionConfigs = [];
+for (const targetR of [1, 1.5, 2])
+for (const displacementMinAtr of [0.35, 0.55, 0.75])
+for (const minCloseStrength of [0.6, 0.8])
+for (const minH1TrendAtr of [0, 0.25])
+  precisionConfigs.push({
+    ...nyBuyCfg,
+    targetR,
+    stopAtrBuffer: 0.15,
+    displacementMinAtr,
+    minCloseStrength,
+    minH1TrendAtr,
+  });
+const precisionStudy = precisionConfigs.map(cfg => {
+  const base = run(cfg, { newsFilter: true });
+  const stressed = run(cfg, { newsFilter: true, delayBars: 1, slipAtr: 0.05, extraCost: 0.03 });
+  const wins = base.trades.filter(x => x.t < split - purge && x.r > 0).length;
+  return {
+    cfg,
+    development: base.dev,
+    positiveFolds: base.positiveFolds,
+    winRate90LowerBound: wilsonLower(wins, base.dev.n),
+    stressedDevelopment: stressed.dev,
+    stressedPositiveFolds: stressed.positiveFolds,
+  };
+}).filter(x => x.development.n >= 24 && x.positiveFolds >= 2 && x.development.exp > 0)
+  .sort((a, b) =>
+    b.stressedPositiveFolds - a.stressedPositiveFolds ||
+    b.winRate90LowerBound - a.winRate90LowerBound ||
+    b.stressedDevelopment.exp - a.stressedDevelopment.exp
+  );
 console.log(JSON.stringify({
   bars: rows.length,
   start: new Date(rows[0].t).toISOString(),
@@ -489,5 +540,19 @@ console.log(JSON.stringify({
     lastKnownClosedBar: new Date(rows.at(-1).t + BAR).toISOString(),
     nextUnseenDataStartsAfter: new Date(rows.at(-1).t + BAR).toISOString(),
     replayTrace,
+  },
+  highPrecisionStudy: {
+    targetWinRate: 0.8,
+    minimumTargetR: 1,
+    selectionUsesFinalTest: false,
+    tested: precisionConfigs.length,
+    targetReached: precisionStudy.some(x =>
+      x.development.wr >= 0.8 &&
+      x.stressedDevelopment.wr >= 0.75 &&
+      x.stressedPositiveFolds >= 2
+    ),
+    bestObservedWinRate: [...precisionStudy]
+      .sort((a, b) => b.development.wr - a.development.wr || b.development.n - a.development.n)[0] || null,
+    candidates: precisionStudy.slice(0, 10),
   },
 }, null, 2));
