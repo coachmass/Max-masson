@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#060a10" />
-    <title>Smart Gold V10.20 Retest Asiatique</title>
+    <title>Smart Gold V10.7 Pro Daily Plan</title>
     <style>
       :root {
         --bg: #05080d;
@@ -128,6 +128,73 @@
         display: block;
         margin-top: 5px;
         font-size: 15px;
+      }
+      .dailyPlan {
+        border-color: #5b4920;
+        background:
+          radial-gradient(circle at top right, rgba(245, 197, 66, 0.09), transparent 36%),
+          rgba(13, 20, 31, 0.97);
+      }
+      .planHead {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+      }
+      .planStage {
+        border: 1px solid currentColor;
+        border-radius: 999px;
+        padding: 7px 11px;
+        font-weight: 900;
+        white-space: nowrap;
+      }
+      .planProgress {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 7px;
+        margin: 12px 0;
+      }
+      .planStep {
+        border: 1px solid #25344a;
+        border-radius: 10px;
+        padding: 9px;
+        color: var(--muted);
+        text-align: center;
+        font-size: 13px;
+        font-weight: 850;
+      }
+      .planStep.active {
+        border-color: var(--gold);
+        background: rgba(245, 197, 66, 0.1);
+        color: var(--gold);
+      }
+      .planStep.complete {
+        border-color: #1c6651;
+        color: var(--green);
+      }
+      .dailyGrid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+      }
+      .dailyItem {
+        background: #080e17;
+        border: 1px solid #223047;
+        border-radius: 12px;
+        padding: 11px;
+      }
+      .dailyItem b {
+        display: block;
+        margin-top: 5px;
+        line-height: 1.35;
+      }
+      .dailyReason {
+        margin-top: 9px;
+        padding: 11px 12px;
+        border-left: 3px solid var(--gold);
+        border-radius: 8px;
+        background: #090f18;
+        line-height: 1.5;
       }
       .metricCard {
         background: #080e17;
@@ -379,6 +446,9 @@
         .strategyStrip {
           grid-template-columns: 1fr 1fr;
         }
+        .dailyGrid {
+          grid-template-columns: 1fr 1fr;
+        }
         .executionGate {
           grid-template-columns: 1fr;
         }
@@ -421,126 +491,18 @@
         .checks {
           grid-template-columns: 1fr;
         }
+        .planHead {
+          display: block;
+        }
+        .planStage {
+          display: inline-block;
+          margin-top: 8px;
+        }
+        .dailyGrid {
+          grid-template-columns: 1fr;
+        }
         .big {
           font-size: 25px;
-        }
-      }
-      details.advancedPanel {
-        padding: 0;
-        overflow: hidden;
-      }
-      details.advancedPanel > summary,
-      details.inlineDetails > summary {
-        cursor: pointer;
-        list-style: none;
-        padding: 15px;
-        color: var(--gold);
-        font-weight: 800;
-        letter-spacing: 0.04em;
-      }
-      details.advancedPanel > summary::-webkit-details-marker,
-      details.inlineDetails > summary::-webkit-details-marker {
-        display: none;
-      }
-      details.advancedPanel > summary::after,
-      details.inlineDetails > summary::after {
-        content: "＋";
-        float: right;
-      }
-      details.advancedPanel[open] > summary::after,
-      details.inlineDetails[open] > summary::after {
-        content: "−";
-      }
-      .advancedBody {
-        padding: 0 15px 15px;
-      }
-      .strategyStrip .strategyItem:nth-child(n + 3) {
-        display: none;
-      }
-      #momentumCandidateCard .dashboard {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-      .optionalMetric {
-        display: none;
-      }
-      .essentialHint {
-        margin-top: 8px;
-        color: var(--muted);
-      }
-      .backtestHeading {
-        display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin: 12px 0 6px;
-      }
-      .backtestMetrics {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 8px;
-        margin-top: 12px;
-      }
-      .backtestMetrics .metricCard {
-        min-height: 0;
-      }
-      .backtestMetrics .muted {
-        font-size: 11px;
-      }
-      .backtestMetrics .big {
-        font-size: 25px;
-        overflow-wrap: anywhere;
-      }
-      .backtestDetails {
-        margin-top: 12px;
-        border-top: 1px solid var(--line);
-      }
-      .backtestDetails .advancedBody {
-        line-height: 1.6;
-      }
-      .backtestDetails > summary {
-        letter-spacing: normal !important;
-      }
-      .backtestResearchLabel {
-        color: var(--gold);
-        font-size: 12px;
-      }
-      .backtestMinorStats {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px 18px;
-        margin: 10px 0;
-      }
-      @media (max-width: 650px) {
-        .backtestMetrics {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-      }
-      .paperStats {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 8px;
-        margin-top: 9px;
-      }
-      .paperStat {
-        padding: 9px;
-        border: 1px solid var(--line);
-        border-radius: 10px;
-        text-align: center;
-        background: rgba(255, 255, 255, 0.02);
-      }
-      .paperStat b {
-        display: block;
-        font-size: 1.1rem;
-      }
-      @media (max-width: 650px) {
-        .paperStats {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-      }
-      @media (max-width: 650px) {
-        #momentumCandidateCard .dashboard {
-          grid-template-columns: 1fr;
         }
       }
     </style>
@@ -551,7 +513,7 @@
         <div class="brand">
           <div class="logo">Au</div>
           <div>
-            <div class="title">Smart Gold V10.20 Pro 👑</div>
+            <div class="title">Smart Gold V10.7 Pro 👑</div>
             <div class="sub">XAU/USD · ANALYSE & ENTRÉES · Maxime Masson</div>
             <div class="small">
               DISCIPLINE · ANALYSE · PROTECTION DU CAPITAL
@@ -589,7 +551,7 @@
           <div id="score" class="big">— / 100</div>
           <div class="scorebar"><i id="scoreBar"></i></div>
           <div class="small" style="margin-top: 8px">
-            Seuil live validé historiquement + espace ≥ 3R
+            Entrée seulement ≥ 75/100 + espace ≥ 3R
           </div>
         </div>
         <div id="decisionCard" class="metricCard decision wait">
@@ -626,71 +588,57 @@
           <b id="mtfDetail">4H — · 1H — · TF —</b>
         </div>
       </section>
-      <section class="card" id="momentumCandidateCard">
-        <div class="sectionTitle">CANDIDAT ESPÉRANCE · REPLAY CAUSAL</div>
-        <div class="dashboard" style="margin-top: 8px">
-          <div class="metricCard">
-            <div class="muted">AUTOMATISATION</div>
-            <div class="big red">BLOQUÉE</div>
-            <div class="small">En attente de nouvelles données jamais utilisées pour choisir les règles.</div>
+      <section class="card dailyPlan" aria-label="Plan Gold du jour">
+        <div class="planHead">
+          <div>
+            <div class="sectionTitle">PLAN GOLD DU JOUR</div>
+            <div class="small">Lecture automatisée des dernières bougies clôturées · aucun quota de trade</div>
           </div>
-          <div class="metricCard">
-            <div class="muted">MEILLEURE PISTE</div>
-            <div class="big gold">BUY · NEW YORK</div>
-            <div class="small">Continuation après sweep + cassure confirmée · objectif fixe 2R.</div>
+          <div id="dailyStage" class="planStage gold">PRÉPARATION</div>
+        </div>
+        <div class="planProgress" aria-label="Progression du signal">
+          <div id="stepPrepare" class="planStep active">1 · PRÉPARATION</div>
+          <div id="stepWatch" class="planStep">2 · SURVEILLANCE</div>
+          <div id="stepEntry" class="planStep">3 · ENTRÉE VALIDÉE</div>
+        </div>
+        <div class="dailyGrid">
+          <div class="dailyItem">
+            <div class="muted">BIAIS 4H / 1H</div>
+            <b id="dailyBias">Analyse en cours…</b>
+          </div>
+          <div class="dailyItem">
+            <div class="muted">SESSION ACTUELLE</div>
+            <b id="dailySession">—</b>
+          </div>
+          <div class="dailyItem">
+            <div class="muted">SCÉNARIO PRIORITAIRE</div>
+            <b id="dailyScenario">—</b>
+          </div>
+          <div class="dailyItem">
+            <div class="muted">PROCHAIN DÉCLENCHEUR</div>
+            <b id="dailyTrigger">—</b>
           </div>
         </div>
-        <div class="small essentialHint">
-          Replay gauche à droite : 82 trades audités, 0 donnée future utilisée.
-          Filtre CPI/NFP figé et stop derrière le sweep + 0,15 ATR.
-          Le classement privilégie maintenant l’espérance, le profit factor et le drawdown; le win rate est secondaire.
+        <div id="dailyReason" class="dailyReason">
+          Connexion aux données et validation du contexte en cours.
         </div>
-        <details class="inlineDetails">
-          <summary>Voir la validation du candidat</summary>
-          <div class="small">
-            Le replay causal confirme 0 violation sur 82 trades : confirmation clôturée
-            avant l’entrée, H1/H4 clôturés et exécution bid/ask. Le candidat sélectionné
-            uniquement sur le développement exige une clôture forte ≥60 %, une tendance
-            H1 ≥0,25 ATR, un stop derrière le sweep +0,15 ATR et un objectif 2R.
-            Développement : 65 trades, +19,99R, PF 1,60 et +0,31R/trade.
-            Sous retard, glissement et coûts : 64 trades, +18,48R, PF 1,58,
-            +0,29R/trade et drawdown 3,47R, avec trois blocs positifs.
-            À 100 $ risqués par trade, le test sous stress équivaut historiquement à
-            environ +1 848 $, +28,87 $ par trade et 347 $ de drawdown. Ces montants
-            illustrent le ratio risque/rendement; ils ne garantissent pas un résultat futur.
-            Comparaison des entrées : sans filtre horaire, la meilleure règle reste négative
-            (−5,34R, PF 0,94). Le sweep du range pré-Asie produit un BUY légèrement positif
-            en développement (+3,08R, PF 1,14), mais échoue sous retard et glissement
-            (−7,99R, PF 0,70); il est rejeté. Une entrée limite au retest ramène le
-            résultat asiatique à +0,12R et PF 1,00, mais l’espérance reste nulle et
-            un seul bloc sur trois est positif; elle est aussi rejetée. Le sweep du
-            range asiatique à Londres ne passe aucun critère. New York demeure la seule session robuste. Les positions peuvent
-            néanmoins continuer jusqu’aux sessions suivantes.
-            Prochaine preuve : forward paper sans changer les paramètres. Aucun ordre réel n’est autorisé.
-          </div>
-        </details>
-        <div style="display:none" aria-hidden="true">
-          <span id="momentumState"></span><span id="momentumDetails"></span>
-          <span id="momentumPlan"></span><span id="momentumLevels"></span>
-          <span id="paperTrades"></span><span id="paperWinRate"></span>
-          <span id="paperPf"></span><span id="paperPnl"></span>
-          <span id="paperGate"></span>
+        <div class="small" style="margin-top: 8px">
+          Risque prévu : 0,5–1 % maximum · une zone seule reste une surveillance, jamais une entrée.
         </div>
       </section>
-      <details class="card advancedPanel"><summary>Détails du Reliability Lab</summary><div class="advancedBody">
-        <div class="sectionTitle">RELIABILITY LAB · WIN RATE + ESPÉRANCE</div>
+      <section class="card">
+        <div class="sectionTitle">PATTERN LAB · COMPARATEUR R:R</div>
         <div class="small">
-          Le profil R:R, le breakeven et le score minimum sont choisis uniquement
-          sur les premiers 75 % des données, validés sur trois blocs chronologiques,
-          puis vérifiés sans ajustement sur les derniers 25 %.
+          Le profil est choisi uniquement sur les premiers 75 % des données,
+          puis vérifié sans ajustement sur les derniers 25 %.
         </div>
         <div class="tableWrap" aria-label="Comparaison hors échantillon des profils de sortie">
           <table class="validationTable">
             <thead>
               <tr>
                 <th>STRATÉGIE</th>
-                <th>PROFIL DE SORTIE</th>
-                <th>CONTEXTE + FILTRE</th>
+                <th>R:R CHOISI SUR DÉVELOPPEMENT</th>
+                <th>CONTEXTE CHOISI SUR DÉVELOPPEMENT</th>
                 <th>DÉVELOPPEMENT</th>
                 <th>TEST FINAL</th>
                 <th>TP TEST</th>
@@ -703,8 +651,8 @@
             </tbody>
           </table>
         </div>
-      </div></details>
-      <details class="card advancedPanel"><summary>Indicateurs MACD</summary><div class="advancedBody">
+      </section>
+      <section class="card">
         <div class="sectionTitle">MACD — CONFLUENCE GOLD</div>
         <div class="two">
           <div class="level">
@@ -725,7 +673,7 @@
           </div>
         </div>
         <div id="dataState" class="status">Connexion au flux Gold…</div>
-      </div></details>
+      </section>
       <div class="mainGrid">
         <div>
           <section class="card">
@@ -735,10 +683,10 @@
               <canvas id="chartCanvas"></canvas>
             </div>
           </section>
-          <details class="card advancedPanel"><summary>Analyse complète du marché</summary><div class="advancedBody">
+          <section class="card">
             <div class="sectionTitle">ANALYSE COMPLÈTE DU MARCHÉ</div>
             <div id="marketText" class="analysis">Chargement…</div>
-          </div></details>
+          </section>
         </div>
         <aside>
           <section class="card">
@@ -802,7 +750,7 @@
               Aucun trade sans validation.
             </div>
           </section>
-          <details class="card advancedPanel"><summary>Tous les indicateurs</summary><div class="advancedBody">
+          <section class="card">
             <div class="sectionTitle">INDICATEURS</div>
             <div class="two">
               <div class="level">
@@ -830,15 +778,15 @@
                 <b id="volatility">—</b>
               </div>
             </div>
-          </div></details>
-          <details class="card advancedPanel"><summary>Fibonacci, liquidité et structure</summary><div class="advancedBody">
+          </section>
+          <section class="card">
             <div class="sectionTitle">FIBONACCI · LIQUIDITÉ · STRUCTURE</div>
             <div id="fib" class="small">—</div>
             <div id="structure" class="analysis" style="margin-top: 7px">—</div>
-          </div></details>
+          </section>
         </aside>
       </div>
-      <details class="card advancedPanel"><summary>Toutes les validations du signal</summary><div class="advancedBody">
+      <section class="card">
         <div class="sectionTitle">VALIDATION DU SIGNAL</div>
         <div class="checks" id="checks"></div>
         <div class="note" style="margin-top: 9px">
@@ -847,45 +795,40 @@
           cohérente, réaction de bougie, MACD aligné et espace théorique ≥3R. Si
           une condition critique manque, le moteur reste sur ATTENDRE.
         </div>
-      </div></details>
-      <section class="card" id="backtestSection" data-results-view="2026-09-20-v1" aria-labelledby="backtestTitle">
-        <div class="sectionTitle" id="backtestTitle">RÉSULTATS DES TESTS</div>
-        <div class="backtestHeading">
-          <b>Moteur du site · V10.20</b>
-          <span class="small">12 derniers mois disponibles</span>
+      </section>
+      <section class="card">
+        <div class="sectionTitle">TEST HISTORIQUE DAY TRADING M15</div>
+        <div class="small" id="btStatus">Calcul en attente…</div>
+        <div class="small" id="btQuality" style="margin-top: 5px">
+          Validation statistique : en attente.
         </div>
-        <div class="small" id="btPeriod">Période exacte disponible après le calcul.</div>
-        <div class="small essentialHint" id="btVerdict" role="status">Calcul en attente…</div>
-        <div class="backtestMetrics">
+        <div class="dashboard" style="margin-top: 8px">
           <div class="metricCard">
-            <div class="muted">RÉSULTAT NET</div>
-            <div id="btNet" class="big">—</div>
+            <div class="muted">WIN RATE</div>
+            <div id="wr" class="big">—</div>
           </div>
           <div class="metricCard">
             <div class="muted">TRADES</div>
             <div id="trades" class="big">—</div>
           </div>
           <div class="metricCard">
-            <div class="muted">TRADES / SEMAINE</div>
+            <div class="muted">SIGNAUX / SEMAINE</div>
             <div id="signalsWeek" class="big">—</div>
           </div>
           <div class="metricCard">
-            <div class="muted">RECUL MAXIMAL</div>
+            <div class="muted">SIGNAUX / JOUR</div>
+            <div id="signalsDay" class="big">—</div>
+          </div>
+          <div class="metricCard">
+            <div class="muted">PROFIT FACTOR</div>
+            <div id="pf" class="big">—</div>
+          </div>
+          <div class="metricCard">
+            <div class="muted">MAX DD</div>
             <div id="dd" class="big">—</div>
           </div>
         </div>
-        <div class="small essentialHint" id="btMoney">1 R = le montant risqué au départ sur un trade.</div>
-        <details class="inlineDetails backtestDetails">
-          <summary>Détails du moteur actuel</summary>
-          <div class="advancedBody">
-          <div class="small" id="btStatus">Calcul en attente…</div>
-          <div class="small" id="btQuality" style="margin-top: 5px">Validation statistique : en attente.</div>
-          <div class="small backtestMinorStats">
-            <span>TP1 atteints : <b id="wr">—</b></span>
-            <span>Profit factor : <b id="pf">—</b></span>
-            <span>Trades / jour coté : <b id="signalsDay">—</b></span>
-          </div>
-          <div class="tableWrap" aria-label="Validation hors échantillon par stratégie">
+        <div class="tableWrap" aria-label="Validation hors échantillon par stratégie">
           <table class="validationTable">
             <thead>
               <tr>
@@ -908,66 +851,29 @@
           <b>Validation :</b> résultats calculés uniquement sur bougies
           clôturées reçues d’OANDA. Une bougie touchant SL et TP est comptée en
           perte. L’entrée du backtest se fait à l’ouverture suivante, inclut un
-          spread bid/ask historique et un glissement prudent de 0,02R. Le moteur
-          compare plusieurs cibles, seuils de breakeven et scores minimums, mais
-          les choisit uniquement dans la période de développement. Il ne simule
-          qu’un seul trade à la fois et purge huit heures autour de la séparation
-          pour éviter la fuite d’information. Les premiers 75 % sont aussi
-          divisés en trois blocs chronologiques; les derniers 25 % forment une
-          période de test distincte. Un profil doit conserver un win rate majoritaire, une
-          espérance positive et une stabilité multi-périodes avant d’être autorisé.
-          Les performances passées
+          spread bid/ask historique et un glissement prudent de 0,02R. Le SL
+          passe au breakeven après +1R, plutôt qu’après une distance fixe. Le
+          moteur ne simule qu’un seul trade à la fois pour éviter de gonfler
+          artificiellement les résultats. Les premiers 75 % de l’historique
+          servent au développement; les derniers 25 % restent un test final
+          hors échantillon. Une stratégie doit être positive dans les deux
+          périodes avant d’être autorisée en direct. Les performances passées
           ne garantissent pas les résultats futurs.
         </div>
-          </div>
-        </details>
-        <details class="inlineDetails backtestDetails" id="researchBacktest">
-          <summary>Essai M5/M15 · +10,35 R · Exploratoire</summary>
-          <div class="advancedBody">
-            <div class="backtestHeading">
-              <b>Cassure + retest confirmé</b>
-              <span class="backtestResearchLabel">EXPLORATOIRE</span>
-            </div>
-            <div class="small">21 sept. 2023 – 18 déc. 2025 · Étude du 20 sept. 2026</div>
-            <div class="small essentialHint">BUY et SELL · Toutes les sessions · Durée maximale de 4 h</div>
-            <div class="backtestMetrics">
-              <div class="metricCard"><div class="muted">RÉSULTAT NET</div><div class="big">+10,35 R</div></div>
-              <div class="metricCard"><div class="muted">TRADES</div><div class="big">391</div></div>
-              <div class="metricCard"><div class="muted">TRADES / SEMAINE</div><div class="big">3,34</div></div>
-              <div class="metricCard"><div class="muted">RECUL MAXIMAL</div><div class="big">25,27 R</div></div>
-            </div>
-            <p class="small">À 100 $ de risque fixe par trade : environ +1 035 $ au total, avec un recul maximal de 2 527 $. Conversion illustrative de la simulation.</p>
-            <p class="small"><b>Avantage encore fragile.</b> Les coûts prévus sont inclus. Ajouter 0,05 R de coût par trade ferait passer le total à −9,20 R. Une des trois sous-périodes perd 17,97 R.</p>
-            <p class="small">Historique déjà utilisé en recherche, sans validation indépendante. Ce modèle n’est pas encore utilisé par les signaux du site. Environ 3,3 trades par semaine ne garantit pas une entrée chaque jour.</p>
-            <details class="inlineDetails">
-              <summary>Règles de cet essai</summary>
-              <p class="small">Niveau sur 8 M15 clôturées, cassure puis retest avec confirmation M5, EMA20/EMA50 alignées en M5 et M15. Spread maximal admis : 0,10 R. Stop structurel, cible 2 R et sortie à 16:55 New York au plus tard. Prix bid/ask historiques, glissement d’entrée de 0,05 ATR et pénalité supplémentaire de 0,05 R.</p>
-              <p class="small">Historique local étiqueté OANDA ; provenance non recertifiée indépendamment. Résultats enregistrés pour cette étude, sans recalcul automatique avec chaque nouvelle bougie.</p>
-            </details>
-          </div>
-        </details>
-      </section>
-      <section class="card" data-research-export="v1">
-        <details>
-          <summary>Exporter les données de recherche</summary>
-          <p class="small">Télécharge les bougies M5 clôturées avec les prix bid/ask pour poursuivre les tests.</p>
-          <button id="exportResearch">Télécharger les bougies M5</button>
-          <p id="exportResearchStatus" class="small" role="status"></p>
-        </details>
       </section>
       <section class="card">
         <div class="sectionTitle">RÈGLES DE PROTECTION DU CAPITAL</div>
         <div class="checks">
           <div class="check ok">✓ SL : structure + plafond 50 pips</div>
-          <div class="check ok">✓ Break-even : seuil adaptatif validé</div>
-          <div class="check ok">✓ Entrée : score minimum validé</div>
+          <div class="check ok">✓ Break-even : +1R</div>
+          <div class="check ok">✓ Entrée : score ≥75/100</div>
           <div class="check ok">✓ Espace structurel : ≥3R</div>
-          <div class="check ok">✓ TP1 adaptatif : 1,25R à 3R</div>
+          <div class="check ok">✓ TP1 adaptatif : 1,5R · 2R · 3R</div>
           <div class="check ok">✓ Extensions seulement après validation</div>
         </div>
       </section>
       <footer class="footer">
-        <span>Smart Gold V10.14 Backtests Clarifiés · créé pour Maxime Masson</span
+        <span>Smart Gold V10.7 Pro · créé pour Maxime Masson</span
         ><span class="green">● Signal sécurisé</span>
       </footer>
     </main>
@@ -984,8 +890,6 @@
         rows = [],
         rowsH1 = [],
         rowsH4 = [],
-        rowsM5 = [],
-        rowsM5ObservedAt = 0,
         chartZones = null,
         feedFresh = false,
         isLoading = false,
@@ -1487,16 +1391,10 @@
         $("dataState").textContent = "Connexion au flux Gold…";
         $("dataState").className = "status";
         try {
-          const selected = fetchHistory(TF[tf][1], tf === 5 ? 2000 : 800),
-            m5Request = tf === 5 ? selected : fetchHistory("5m", 2000),
+          const selected = fetchHistory(TF[tf][1], 800),
             h1Request = tf === 60 ? selected : fetchHistory("1h", 500),
             h4Request = tf === 240 ? selected : fetchHistory("4h", 500),
-            [a, m5, h1, h4] = await Promise.all([
-              selected,
-              m5Request,
-              h1Request,
-              h4Request,
-            ]);
+            [a, h1, h4] = await Promise.all([selected, h1Request, h4Request]);
           if (a.length < 80) throw Error("historique insuffisant");
           const lp = a[a.length - 1]?.c;
           if (!Number.isFinite(lp) || lp <= 100 || lp >= 10000)
@@ -1514,8 +1412,6 @@
           )
             throw Error("bougies OANDA invalides");
           rows = a;
-          rowsM5 = m5;
-          rowsM5ObservedAt = Date.now();
           rowsH1 = h1;
           rowsH4 = h4;
           const candleAge = Date.now() - a[a.length - 1].t,
@@ -1536,8 +1432,6 @@
             new Date(a[a.length - 1].t).toLocaleTimeString("fr-CA");
         } catch (e) {
           rows = [];
-          rowsM5 = [];
-          rowsM5ObservedAt = 0;
           chartZones = null;
           feedFresh = false;
           $("dataState").className = "status bad";
@@ -1551,6 +1445,114 @@
           lastLoadAt = Date.now();
         }
       }
+      function setDailyStage(stage, side = null) {
+        const stages = ["PRÉPARATION", "SURVEILLANCE", "ENTRÉE VALIDÉE"],
+          activeIndex = Math.max(0, stages.indexOf(stage)),
+          ids = ["stepPrepare", "stepWatch", "stepEntry"];
+        $("dailyStage").textContent = stage;
+        $("dailyStage").className =
+          "planStage " +
+          (stage === "ENTRÉE VALIDÉE"
+            ? side === "SELL"
+              ? "red"
+              : "green"
+            : "gold");
+        ids.forEach((id, index) => {
+          $(id).className =
+            "planStep" +
+            (index < activeIndex
+              ? " complete"
+              : index === activeIndex
+                ? " active"
+                : "");
+        });
+      }
+      function updateDailyPlan(context) {
+        const {
+            valid,
+            side,
+            signal,
+            h1Trend,
+            h4Trend,
+            currentSession,
+            inBuy,
+            inSell,
+            strategyApproved,
+            score,
+            bullReject,
+            bearReject,
+            structureBull,
+            structureBear,
+            macdBull,
+            macdBear,
+            buyLow,
+            buyHigh,
+            sellLow,
+            sellHigh,
+            approvedPattern,
+          } = context,
+          zoneActive = side === "BUY" ? inBuy : inSell,
+          reactionOk = side === "BUY" ? bullReject : bearReject,
+          structureOk = side === "BUY" ? structureBull : structureBear,
+          macdOk = side === "BUY" ? macdBull : macdBear,
+          watchReady =
+            feedFresh &&
+            validationReady &&
+            strategyApproved &&
+            zoneActive,
+          stage = valid
+            ? "ENTRÉE VALIDÉE"
+            : watchReady
+              ? "SURVEILLANCE"
+              : "PRÉPARATION",
+          bias =
+            h1Trend === "bull" && h4Trend === "bull"
+              ? "HAUSSIER · achats privilégiés"
+              : h1Trend === "bear" && h4Trend === "bear"
+                ? "BAISSIER · ventes privilégiées"
+                : "MIXTE · patience renforcée";
+        setDailyStage(stage, side);
+        $("dailyBias").textContent = bias;
+        $("dailyBias").className =
+          h1Trend === h4Trend && h1Trend !== "neutral"
+            ? h1Trend === "bull"
+              ? "green"
+              : "red"
+            : "gold";
+        $("dailySession").textContent = currentSession;
+        $("dailyScenario").textContent = approvedPattern
+          ? `${signal.strategy} · ${side} · ${approvedPattern.label} · cible ${approvedPattern.targetR.toFixed(1)}R`
+          : `${signal.strategy} · ${side} · mode recherche`;
+        const zoneText =
+          side === "BUY"
+            ? `${fmt(buyLow)}–${fmt(buyHigh)}`
+            : `${fmt(sellLow)}–${fmt(sellHigh)}`;
+        let trigger = "Attendre une configuration complète.";
+        if (!feedFresh) trigger = "Reprise du flux avec une bougie clôturée récente.";
+        else if (!validationReady) trigger = "Fin de la validation historique M15.";
+        else if (!strategyApproved)
+          trigger = `Pattern ${side} autorisé pour cette session.`;
+        else if (!zoneActive) trigger = `Retour du prix dans la zone ${side} ${zoneText}.`;
+        else if (!reactionOk) trigger = `Rejet ${side} confirmé à la clôture M5/M15.`;
+        else if (!structureOk) trigger = "Reprise de structure dans le sens du scénario.";
+        else if (!macdOk) trigger = "Momentum MACD aligné avec le scénario.";
+        else if (score < 75) trigger = "Score de confluence d’au moins 75/100.";
+        else trigger = "Clôture de confirmation et maintien hors invalidation.";
+        $("dailyTrigger").textContent = trigger;
+        const blockers = [];
+        if (!feedFresh) blockers.push("données trop anciennes ou marché fermé");
+        if (!validationReady) blockers.push("test historique encore incomplet");
+        if (validationReady && !strategyApproved)
+          blockers.push("ce sens/session n’a pas démontré un edge robuste");
+        if (!zoneActive) blockers.push(`prix hors de la zone ${side}`);
+        if (!reactionOk) blockers.push("réaction de bougie non confirmée");
+        if (!structureOk) blockers.push("structure non confirmée");
+        if (!macdOk) blockers.push("momentum non aligné");
+        if (score < 75) blockers.push(`score ${score}/100 sous le seuil`);
+        $("dailyReason").innerHTML = valid
+          ? `<b class="${side === "BUY" ? "green" : "red"}">Signal ${side} autorisé.</b> Le pattern, la session, le sens, la zone et la clôture correspondent aux règles testées. Respecter le SL et le risque avant l’exécution.`
+          : `<b>Pourquoi attendre :</b> ${blockers.length ? blockers.join(" · ") : "confirmation finale absente"}.`;
+      }
       function setBusy() {
         $("decisionCard").className = "metricCard decision wait";
         $("decision").className = "big gold";
@@ -1561,6 +1563,13 @@
         $("executionState").textContent = "VÉRIFICATION EN COURS";
         $("executionGuide").textContent =
           "Le moteur contrôle les données, le régime et les confirmations.";
+        setDailyStage("PRÉPARATION");
+        $("dailyBias").textContent = "Analyse en cours…";
+        $("dailySession").textContent = "—";
+        $("dailyScenario").textContent = "—";
+        $("dailyTrigger").textContent = "Attendre la fin du calcul.";
+        $("dailyReason").textContent =
+          "Connexion aux données et validation du contexte en cours.";
       }
       function setWait(
         txt,
@@ -1584,191 +1593,12 @@
           $("scoreBar").style.width = "0%";
           $("checks").innerHTML =
             `<div class="check ${feedOk ? "ok" : "no"}">${feedOk ? "✓" : "✕"} Données reçues</div><div class="check no">✕ Signal non validé</div><div class="check no">✕ Aucun trade autorisé</div>`;
+          setDailyStage("PRÉPARATION");
+          $("dailyTrigger").textContent = feedOk
+            ? "Attendre une configuration complète."
+            : "Rétablissement du flux de marché.";
+          $("dailyReason").innerHTML = `<b>Pourquoi attendre :</b> ${txt}`;
         }
-      }
-      const PAPER_JOURNAL_KEY = "smart-gold-momentum-forward-v1";
-      function readPaperJournal() {
-        try {
-          const saved = JSON.parse(localStorage.getItem(PAPER_JOURNAL_KEY) || "null");
-          if (saved?.version === 1 && Array.isArray(saved.trades))
-            return saved;
-        } catch (_) {}
-        return {
-          version: 1,
-          startedAt: Date.now(),
-          open: null,
-          trades: [],
-          seen: [],
-        };
-      }
-      function writePaperJournal(journal) {
-        try {
-          localStorage.setItem(PAPER_JOURNAL_KEY, JSON.stringify(journal));
-        } catch (_) {}
-      }
-      function paperMetrics(trades) {
-        let pnl = 0,
-          peak = 0,
-          dd = 0,
-          grossWin = 0,
-          grossLoss = 0,
-          wins = 0;
-        for (const trade of trades) {
-          pnl += trade.resultR;
-          peak = Math.max(peak, pnl);
-          dd = Math.max(dd, peak - pnl);
-          if (trade.resultR > 0) {
-            wins++;
-            grossWin += trade.resultR;
-          } else {
-            grossLoss += Math.abs(trade.resultR);
-          }
-        }
-        return {
-          n: trades.length,
-          wins,
-          winRate: trades.length ? wins / trades.length : 0,
-          pnl,
-          pf: grossLoss ? grossWin / grossLoss : grossWin ? Infinity : 0,
-          dd,
-        };
-      }
-      function renderPaperJournal(journal, note = "") {
-        const m = paperMetrics(journal.trades);
-        $("paperTrades").textContent = m.n;
-        $("paperWinRate").textContent = m.n ? (m.winRate * 100).toFixed(1) + "%" : "—";
-        $("paperPf").textContent = m.n
-          ? Number.isFinite(m.pf)
-            ? m.pf.toFixed(2)
-            : "∞"
-          : "—";
-        $("paperPnl").textContent = (m.pnl >= 0 ? "+" : "") + m.pnl.toFixed(1) + "R";
-        $("paperPnl").className = m.pnl > 0 ? "green" : m.pnl < 0 ? "red" : "";
-        const qualified =
-          m.n >= 30 &&
-          m.winRate >= 0.55 &&
-          m.pf >= 1.3 &&
-          m.pnl > 0 &&
-          m.dd <= 6;
-        $("paperGate").textContent = qualified
-          ? `Forward ${m.n} trades positif · vérification manuelle requise avant toute automatisation.`
-          : `Forward test : collecte ${Math.min(m.n, 30)}/30 · DD ${m.dd.toFixed(1)}R · aucun passage au réel.${note ? " " + note : ""}`;
-        $("paperGate").className = "small essentialHint " + (qualified ? "green" : "gold");
-      }
-      function updatePaperJournal(candidate) {
-        const journal = readPaperJournal();
-        let note = "";
-        if (journal.open) {
-          const available = rowsM5.filter((bar) => bar.t > journal.open.entryTime);
-          if (
-            available.length &&
-            journal.open.entryTime < rowsM5[0].t
-          ) {
-            note = "Historique local incomplet : position conservée ouverte.";
-          } else {
-            for (const bar of available) {
-              const askHigh = Number.isFinite(bar.ah) ? bar.ah : bar.h,
-                askLow = Number.isFinite(bar.al) ? bar.al : bar.l,
-                hitSL = askHigh >= journal.open.sl,
-                hitTP = askLow <= journal.open.tp;
-              if (!hitSL && !hitTP) continue;
-              const won = hitTP && !hitSL;
-              journal.trades.push({
-                ...journal.open,
-                exitTime: bar.t,
-                outcome: won ? "TP" : "SL",
-                resultR: won ? 0.98 : -1.02,
-              });
-              journal.open = null;
-              break;
-            }
-          }
-        }
-        if (
-          candidate.active &&
-          !journal.open &&
-          !journal.seen.includes(candidate.signalKey)
-        ) {
-          journal.open = {
-            signalKey: candidate.signalKey,
-            entryTime: candidate.entryTime,
-            entry: candidate.entry,
-            sl: candidate.sl,
-            tp: candidate.tp,
-          };
-          journal.seen.push(candidate.signalKey);
-          journal.seen = journal.seen.slice(-200);
-          note = "Nouveau SELL paper enregistré.";
-        }
-        journal.trades = journal.trades.slice(-200);
-        writePaperJournal(journal);
-        renderPaperJournal(
-          journal,
-          journal.open
-            ? `Position paper ouverte : ${fmt(journal.open.entry)} → TP ${fmt(journal.open.tp)} / SL ${fmt(journal.open.sl)}.`
-            : note,
-        );
-      }
-      function evaluateMomentumCandidate() {
-        const h1 = rowsH1,
-          m5 = rowsM5;
-        if (h1.length < 80 || m5.length < 220) {
-          $("momentumState").textContent = "DONNÉES INSUFFISANTES";
-          $("momentumState").className = "big red";
-          $("momentumDetails").textContent = "Le module exige des bougies H1 et M5 clôturées.";
-          $("momentumPlan").textContent = "ATTENDRE";
-          $("momentumLevels").textContent = "Aucun ordre réel autorisé.";
-          renderPaperJournal(readPaperJournal(), "Données insuffisantes pour mettre le journal à jour.");
-          return { active: false };
-        }
-        const hp = buildPack(h1),
-          mp = buildPack(m5),
-          k = h1.length - 1,
-          i = m5.length - 1,
-          prior = h1.slice(k - 48, k),
-          channelLow = Math.min(...prior.map((x) => x.l)),
-          breakout = h1[k].c < channelLow,
-          trend = hp.e20[k] < hp.e50[k],
-          risingVolatility = hp.A[k] > hp.A[Math.max(0, k - 24)],
-          liquidSession = ["LONDRES", "NEW YORK"].includes(marketSession(m5[i].t)),
-          active =
-            false &&
-            breakout &&
-            trend &&
-            risingVolatility &&
-            liquidSession &&
-            feedFresh &&
-            Number.isFinite(mp.A[i]),
-          entry = Number.isFinite(m5[i].bc) ? m5[i].bc : m5[i].c,
-          risk = (mp.A[i] || 0) * 1.5,
-          sl = entry + risk,
-          tp = entry - risk,
-          conditions = [
-            ["Cassure plus bas 48 h", breakout],
-            ["EMA20 H1 < EMA50", trend],
-            ["ATR H1 en hausse", risingVolatility],
-            ["Session liquide", liquidSession],
-            ["Flux à jour", feedFresh],
-          ];
-        $("momentumState").textContent = active ? "SELL PAPER" : "ATTENDRE";
-        $("momentumState").className = active ? "big red" : "big gold";
-        $("momentumDetails").textContent = conditions
-          .map(([name, ok]) => `${ok ? "✓" : "✕"} ${name}`)
-          .join(" · ");
-        $("momentumPlan").textContent = active ? "1:1 · SL 1,5 ATR" : "AUCUN SIGNAL";
-        $("momentumLevels").textContent = active
-          ? `Entry ${fmt(entry)} · SL ${fmt(sl)} · TP ${fmt(tp)} · PAPER, aucun ordre automatique`
-          : `Canal 48 h : ${fmt(channelLow)} · suivi paper seulement`;
-        const candidate = {
-          active,
-          entry,
-          sl,
-          tp,
-          signalKey: String(h1[k].t),
-          entryTime: m5[i].t,
-        };
-        updatePaperJournal(candidate);
-        return candidate;
       }
       function analyze() {
         const r = rows,
@@ -1830,11 +1660,9 @@
           strategyApproved =
             approvedStrategies.has(signal.strategy) &&
             approvedPattern?.side === side &&
-            approvedPattern.sessions.includes(currentSession) &&
-            score >= approvedPattern.minScore,
+            approvedPattern.sessions.includes(currentSession),
           valid = signal.valid && feedFresh && validationReady && strategyApproved,
-          globalTrend = h1Trend === h4Trend ? h1Trend : "neutral",
-          momentumCandidate = evaluateMomentumCandidate();
+          globalTrend = h1Trend === h4Trend ? h1Trend : "neutral";
         $("price").textContent = fmt(p);
         $("trend").textContent =
           globalTrend === "bull"
@@ -1919,9 +1747,7 @@
           tps = tpRs.map((x) => entry + sign * risk * x);
         $("entry").textContent = fmt(entry);
         $("sl").textContent = fmt(sl);
-        $("be").textContent = fmt(
-          entry + sign * risk * (approvedPattern?.beTriggerR || 1),
-        );
+        $("be").textContent = fmt(entry + sign * risk);
         $("rr").textContent = "1:" + fmt(space / risk);
         $("tp1").textContent = fmt(tps[0]);
         $("tp2").textContent = fmt(tps[1]);
@@ -1950,10 +1776,7 @@
           ["Réaction", side === "BUY" ? bullReject : bearReject],
           ["Espace ≥3R", side === "BUY" ? rrBuy >= 3 : rrSell >= 3],
           ["ADX / force", signal.adx >= (signal.regime === "RANGE" ? 0 : 20)],
-          [
-            "Pattern R:R + BE + score + session + sens validé",
-            validationReady && strategyApproved,
-          ],
+          ["Pattern R:R + session + sens validé", validationReady && strategyApproved],
           ["Données fraîches et clôturées", feedFresh],
         ];
         $("checks").innerHTML = checks
@@ -1968,14 +1791,14 @@
           $("decision").className = "big " + (side === "BUY" ? "green" : "red");
           $("decision").textContent = side;
           $("decisionText").textContent =
-            `${signal.strategy} · ${approvedPattern.label} · score ≥${approvedPattern.minScore} · BE +${approvedPattern.beTriggerR.toFixed(2)}R · cible 1:${approvedPattern.targetR.toFixed(2)} validée.`;
+            `${signal.strategy} · ${approvedPattern.label} · 1:${approvedPattern.targetR.toFixed(1)} validé sur bougie clôturée.`;
           $("executionGate").className = "card executionGate ready";
           $("executionState").className = side === "BUY" ? "green" : "red";
           $("executionState").textContent = `SIGNAL ${side} VALIDÉ`;
           $("executionGuide").textContent =
             `Vérifier le prix d’entrée ${fmt(entry)}, placer le SL ${fmt(sl)} et respecter le risque prévu avant toute exécution.`;
           $("planText").textContent =
-            `${signal.strategy} · ${approvedPattern.label} · Signal ${side} validé. Entry ${fmt(entry)} · SL ${fmt(sl)} · BE +${approvedPattern.beTriggerR.toFixed(2)}R · cible 1:${approvedPattern.targetR.toFixed(2)}.`;
+            `${signal.strategy} · ${approvedPattern.label} · Signal ${side} validé. Entry ${fmt(entry)} · SL ${fmt(sl)} · cible validée 1:${approvedPattern.targetR.toFixed(1)}.`;
         } else {
           setWait(
             feedFresh
@@ -1987,6 +1810,29 @@
           $("planText").textContent =
             `${signal.strategy} détecté mais NON VALIDÉ. Score ${score}/100 · ${!validationReady ? "validation historique en cours" : strategyApproved ? "confirmations incomplètes" : "stratégie non rentable ou échantillon insuffisant"}.`;
         }
+        updateDailyPlan({
+          valid,
+          side,
+          signal,
+          h1Trend,
+          h4Trend,
+          currentSession,
+          inBuy,
+          inSell,
+          strategyApproved,
+          score,
+          bullReject,
+          bearReject,
+          structureBull,
+          structureBear,
+          macdBull,
+          macdBear,
+          buyLow,
+          buyHigh,
+          sellLow,
+          sellHigh,
+          approvedPattern,
+        });
         $("marketText").innerHTML =
           `<b>Régime :</b> ${signal.regime} · stratégie sélectionnée ${signal.strategy}.<br><br><b>Multi-timeframe :</b> 4H ${trendLabel(h4Trend).toLowerCase()} · 1H ${trendLabel(h1Trend).toLowerCase()} · ${TF[tf][0]} ${trendLabel(signal.currentTrend).toLowerCase()}.<br><br><b>Contexte ${TF[tf][0]} :</b> prix ${fmt(p)} · EMA20 ${fmt(e20[i])} · EMA50 ${fmt(e50[i])} · EMA200 ${fmt(e200[i])} · RSI14 ${fmt(R[i])} · ATR14 ${fmt(A[i])} · ADX14 ${fmt(signal.adx)}.<br><br><b>Lecture :</b> MACD ${macdBull ? "haussier" : macdBear ? "baissier" : "neutre"}. <b>Aucune entrée sans régime adapté, alignement et confirmation clôturée.</b><br><br><span class="proxy">✓ Données moteur : OANDA XAU/USD · mid pour l’analyse, bid/ask pour l’exécution.</span>`;
         draw(r);
@@ -2000,8 +1846,6 @@
           "Chargement du test Day Trading M15 sur 12 mois…";
         $("btQuality").textContent =
           "L’analyse en direct reste disponible pendant le calcul.";
-        $("btVerdict").textContent = "Calcul du moteur actuel en cours…";
-        $("btVerdict").className = "small essentialHint";
         backtestPromise = fetchHistory("15m", 30000);
         try {
           backtestRows = await backtestPromise;
@@ -2011,8 +1855,6 @@
             throw Error("historique M15 de 12 mois incomplet");
           backtest(backtestRows);
         } catch (e) {
-          $("btVerdict").textContent = "Résultat du moteur indisponible — ouvrir les détails.";
-          $("btVerdict").className = "small essentialHint red";
           $("btStatus").textContent =
             "Backtest Day Trading indisponible · " + e.message;
           $("btQuality").textContent =
@@ -2028,8 +1870,6 @@
         const executableRatio =
           r.filter((x) => x.executable).length / Math.max(r.length, 1);
         if (executableRatio < 0.98) {
-          $("btVerdict").textContent = "Calcul bloqué : historique bid/ask incomplet.";
-          $("btVerdict").className = "small essentialHint red";
           $("btStatus").textContent =
             "Validation bloquée : historique bid/ask OANDA incomplet.";
           $("btQuality").textContent =
@@ -2067,17 +1907,10 @@
               .slice(0, 10);
           },
           sessionName = marketSession,
-          simulateProfile = (
-            startIndex,
-            side,
-            entry,
-            risk,
-            targetR,
-            beTriggerR,
-          ) => {
+          simulateProfile = (startIndex, side, entry, risk, targetR) => {
             const sl = entry - side * risk,
               tp = entry + side * risk * targetR,
-              beTrigger = entry + side * risk * beTriggerR,
+              beTrigger = entry + side * risk,
               lastBar = Math.min(r.length - 1, startIndex + maxHoldBars);
             let beArmed = false,
               outcomeType = "TIMEOUT",
@@ -2186,28 +2019,24 @@
             beTrigger = entry + side * signal.risk,
             entryTime = r[i + 1].t,
             session = sessionName(entryTime);
-          for (const targetR of [1.25, 1.5, 2, 2.5, 3]) {
-            for (const beTriggerR of [0.75, 1, 1.25, 1.5]) {
-              const profile = simulateProfile(
-                i + 1,
-                side,
-                entry,
-                signal.risk,
-                targetR,
-                beTriggerR,
-              );
-              profileRecords.push({
-                strategy: signal.strategy,
-                targetR,
-                beTriggerR,
-                entryTime,
-                session,
-                side: signal.side,
-                score: signal.score,
-                adx: signal.adx,
-                ...profile,
-              });
-            }
+          for (const targetR of [1.5, 2, 3]) {
+            const profile = simulateProfile(
+              i + 1,
+              side,
+              entry,
+              signal.risk,
+              targetR,
+            );
+            profileRecords.push({
+              strategy: signal.strategy,
+              targetR,
+              entryTime,
+              session,
+              side: signal.side,
+              score: signal.score,
+              adx: signal.adx,
+              ...profile,
+            });
           }
           signalDays.add(dayKey(entryTime));
           signalWeeks.add(weekKey(entryTime));
@@ -2351,7 +2180,6 @@
             expectancy: records.length ? equity / records.length : 0,
             maxDrawdown,
             maxLossStreak,
-            winRate: records.length ? winCount / records.length : 0,
           };
         },
           medianOf = (values) => {
@@ -2389,7 +2217,6 @@
             ? "∞"
             : "—";
         $("dd").textContent = n ? dd.toFixed(1) + "R" : "—";
-        renderBacktestOverview({ n, pnl, dd, from: r[0].t, to: r[r.length - 1].t });
         const splitTime = r[0].t + (r[r.length - 1].t - r[0].t) * 0.75,
           strategyNames = [
             "PULLBACK TENDANCE",
@@ -2455,236 +2282,165 @@
             </tr>`;
           })
           .join("");
-        const wilsonLower = (wins, total, z = 1.28) => {
-            if (!total) return 0;
-            const p = wins / total,
-              z2 = z * z,
-              denominator = 1 + z2 / total,
-              centre = p + z2 / (2 * total),
-              margin =
-                z *
-                Math.sqrt(
-                  (p * (1 - p) + z2 / (4 * total)) / total,
-                );
-            return Math.max(0, (centre - margin) / denominator);
-          },
-          purgeMs = maxHoldBars * barMs,
-          developmentEnd = splitTime - purgeMs,
-          developmentStart = r[0].t,
-          foldSize = (developmentEnd - developmentStart) / 3,
-          contextDefinitions = [
-            {
-              label: "LONDRES · BUY",
-              sessions: ["LONDRES"],
-              side: "BUY",
-              matches: (x) => x.session === "LONDRES" && x.side === "BUY",
-            },
-            {
-              label: "LONDRES · SELL",
-              sessions: ["LONDRES"],
-              side: "SELL",
-              matches: (x) => x.session === "LONDRES" && x.side === "SELL",
-            },
-            {
-              label: "NEW YORK · BUY",
-              sessions: ["NEW YORK"],
-              side: "BUY",
-              matches: (x) => x.session === "NEW YORK" && x.side === "BUY",
-            },
-            {
-              label: "NEW YORK · SELL",
-              sessions: ["NEW YORK"],
-              side: "SELL",
-              matches: (x) => x.session === "NEW YORK" && x.side === "SELL",
-            },
-            {
-              label: "LONDRES + NY · BUY",
-              sessions: ["LONDRES", "NEW YORK"],
-              side: "BUY",
-              matches: (x) =>
-                ["LONDRES", "NEW YORK"].includes(x.session) &&
-                x.side === "BUY",
-            },
-            {
-              label: "LONDRES + NY · SELL",
-              sessions: ["LONDRES", "NEW YORK"],
-              side: "SELL",
-              matches: (x) =>
-                ["LONDRES", "NEW YORK"].includes(x.session) &&
-                x.side === "SELL",
-            },
-          ],
-          rrLabResults = strategyNames.map((name) => {
-            const candidates = [];
-            for (const targetR of [1.25, 1.5, 2, 2.5, 3]) {
-              for (const beTriggerR of [0.75, 1, 1.25, 1.5]) {
-                for (const minScore of [75, 80, 85, 90]) {
-                  for (const definition of contextDefinitions) {
-                    const records = profileRecords.filter(
-                        (x) =>
-                          x.strategy === name &&
-                          x.targetR === targetR &&
-                          x.beTriggerR === beTriggerR &&
-                          x.score >= minScore &&
-                          definition.matches(x),
-                      ),
-                      developmentRecords = records.filter(
-                        (x) => x.entryTime < developmentEnd,
-                      ),
-                      finalRecords = records.filter(
-                        (x) => x.entryTime >= splitTime,
-                      ),
-                      development = metricsFor(developmentRecords),
-                      finalTest = metricsFor(finalRecords),
-                      folds = [0, 1, 2].map((fold) =>
-                        metricsFor(
-                          developmentRecords.filter((x) => {
-                            const low = developmentStart + fold * foldSize,
-                              high =
-                                fold === 2
-                                  ? developmentEnd
-                                  : developmentStart + (fold + 1) * foldSize;
-                            return x.entryTime >= low && x.entryTime < high;
-                          }),
-                        ),
-                      ),
-                      qualifiedFolds = folds.filter((x) => x.trades >= 5),
-                      positiveFolds = qualifiedFolds.filter(
-                        (x) => x.expectancy > 0 && x.pf >= 1.05,
-                      ).length,
-                      worstFoldExpectancy = qualifiedFolds.length
-                        ? Math.min(...qualifiedFolds.map((x) => x.expectancy))
-                        : -Infinity,
-                      developmentLcb = wilsonLower(
-                        development.wins,
-                        development.trades,
-                      ),
-                      selectionScore =
-                        developmentLcb * 2 +
-                        development.expectancy -
-                        development.maxDrawdown * 0.015 +
-                        positiveFolds * 0.05;
-                    candidates.push({
-                      targetR,
-                      beTriggerR,
-                      minScore,
-                      label: definition.label,
-                      sessions: definition.sessions,
-                      side: definition.side,
-                      development,
-                      finalTest,
-                      finalRecords,
-                      folds,
-                      qualifiedFolds: qualifiedFolds.length,
-                      positiveFolds,
-                      worstFoldExpectancy,
-                      developmentLcb,
-                      selectionScore,
-                    });
-                  }
-                }
-              }
-            }
-            candidates.sort(
-              (a, b) =>
-                Number(
-                  b.development.trades >= 24 &&
-                    b.development.winRate >= 0.5 &&
-                    b.qualifiedFolds >= 2 &&
-                    b.positiveFolds >= 2,
-                ) -
-                  Number(
-                    a.development.trades >= 24 &&
-                      a.development.winRate >= 0.5 &&
-                      a.qualifiedFolds >= 2 &&
-                      a.positiveFolds >= 2,
-                  ) ||
-                b.selectionScore - a.selectionScore ||
-                b.development.trades - a.development.trades,
-            );
-            const selected = candidates[0],
-              finalLcb = wilsonLower(
-                selected.finalTest.wins,
-                selected.finalTest.trades,
+        const rrLabResults = strategyNames.map((name) => {
+          const candidates = [1.5, 2, 3].map((targetR) => {
+            const records = profileRecords.filter(
+                (x) => x.strategy === name && x.targetR === targetR,
               ),
-              stableDevelopment =
-                selected.development.trades >= 24 &&
-                selected.development.winRate >= 0.5 &&
-                selected.development.pnl > 0 &&
-                selected.development.pf >= 1.25 &&
-                selected.development.expectancy > 0 &&
-                selected.qualifiedFolds >= 2 &&
-                selected.positiveFolds >= 2 &&
-                selected.worstFoldExpectancy > -0.15,
-              robust =
-                stableDevelopment &&
-                selected.finalTest.trades >= 8 &&
-                selected.finalTest.winRate >= 0.5 &&
-                selected.finalTest.pnl > 0 &&
-                selected.finalTest.pf >= 1.15 &&
-                selected.finalTest.expectancy > 0 &&
-                finalLcb >= 0.3 &&
-                selected.finalTest.maxDrawdown <= 6,
-              medianMfe = medianOf(
-                selected.finalRecords.map((x) => x.maxFavorableR),
+              developmentRecords = records.filter(
+                (x) => x.entryTime < splitTime,
               ),
-              medianMae = medianOf(
-                selected.finalRecords.map((x) => x.maxAdverseR),
+              finalRecords = records.filter(
+                (x) => x.entryTime >= splitTime,
               );
-            if (robust) {
-              approvedStrategies.add(name);
-              approvedPatterns.set(name, {
-                targetR: selected.targetR,
-                beTriggerR: selected.beTriggerR,
-                minScore: selected.minScore,
-                label: selected.label,
-                sessions: selected.sessions,
-                side: selected.side,
-                developmentLcb: selected.developmentLcb,
-                finalLcb,
-              });
-            }
             return {
-              name,
-              ...selected,
-              finalLcb,
-              robust,
-              medianMfe,
-              medianMae,
+              targetR,
+              records,
+              development: metricsFor(developmentRecords),
+              finalTest: metricsFor(finalRecords),
+              finalRecords,
             };
           });
+          candidates.sort(
+            (a, b) =>
+              Number(b.development.trades >= 35) -
+                Number(a.development.trades >= 35) ||
+              b.development.expectancy - a.development.expectancy,
+          );
+          const selected = candidates[0],
+            contextDefinitions = [
+              {
+                label: "LONDRES · BUY",
+                sessions: ["LONDRES"],
+                side: "BUY",
+                matches: (x) => x.session === "LONDRES" && x.side === "BUY",
+              },
+              {
+                label: "LONDRES · SELL",
+                sessions: ["LONDRES"],
+                side: "SELL",
+                matches: (x) => x.session === "LONDRES" && x.side === "SELL",
+              },
+              {
+                label: "NEW YORK · BUY",
+                sessions: ["NEW YORK"],
+                side: "BUY",
+                matches: (x) => x.session === "NEW YORK" && x.side === "BUY",
+              },
+              {
+                label: "NEW YORK · SELL",
+                sessions: ["NEW YORK"],
+                side: "SELL",
+                matches: (x) => x.session === "NEW YORK" && x.side === "SELL",
+              },
+              {
+                label: "LONDRES + NY · BUY",
+                sessions: ["LONDRES", "NEW YORK"],
+                side: "BUY",
+                matches: (x) =>
+                  ["LONDRES", "NEW YORK"].includes(x.session) &&
+                  x.side === "BUY",
+              },
+              {
+                label: "LONDRES + NY · SELL",
+                sessions: ["LONDRES", "NEW YORK"],
+                side: "SELL",
+                matches: (x) =>
+                  ["LONDRES", "NEW YORK"].includes(x.session) &&
+                  x.side === "SELL",
+              },
+            ],
+            contextCandidates = contextDefinitions.map((definition) => {
+              const records = selected.records.filter(definition.matches),
+                developmentRecords = records.filter(
+                  (x) => x.entryTime < splitTime,
+                ),
+                finalRecords = records.filter(
+                  (x) => x.entryTime >= splitTime,
+                );
+              return {
+                label: definition.label,
+                sessions: definition.sessions,
+                side: definition.side,
+                development: metricsFor(developmentRecords),
+                finalTest: metricsFor(finalRecords),
+                finalRecords,
+              };
+            });
+          contextCandidates.sort(
+            (a, b) =>
+              Number(b.development.trades >= 20) -
+                Number(a.development.trades >= 20) ||
+              (a.development.trades < 20 && b.development.trades < 20
+                ? b.development.trades - a.development.trades
+                : b.development.expectancy - a.development.expectancy),
+          );
+          const selectedContext = contextCandidates[0],
+            robust =
+              selected.development.trades >= 35 &&
+              selectedContext.development.trades >= 20 &&
+              selectedContext.development.pnl > 0 &&
+              selectedContext.development.pf >= 1.25 &&
+              selectedContext.finalTest.trades >= 7 &&
+              selectedContext.finalTest.pnl > 0 &&
+              selectedContext.finalTest.pf >= 1.15 &&
+              selectedContext.finalTest.expectancy > 0,
+            medianMfe = medianOf(
+              selectedContext.finalRecords.map((x) => x.maxFavorableR),
+            ),
+            medianMae = medianOf(
+              selectedContext.finalRecords.map((x) => x.maxAdverseR),
+            );
+          if (robust) {
+            approvedStrategies.add(name);
+            approvedPatterns.set(name, {
+              targetR: selected.targetR,
+              label: selectedContext.label,
+              sessions: selectedContext.sessions,
+              side: selectedContext.side,
+            });
+          }
+          return {
+            name,
+            targetR: selected.targetR,
+            context: selectedContext.label,
+            development: selectedContext.development,
+            finalTest: selectedContext.finalTest,
+            robust,
+            medianMfe,
+            medianMae,
+          };
+        });
         $("rrLabRows").innerHTML = rrLabResults
           .map(
             ({
               name,
               targetR,
-              beTriggerR,
-              minScore,
-              label,
+              context,
               development,
               finalTest,
-              positiveFolds,
-              qualifiedFolds,
-              finalLcb,
               robust,
               medianMfe,
               medianMae,
             }) => {
               const insufficient =
-                  development.trades < 24 || finalTest.trades < 8,
+                  development.trades < 20 || finalTest.trades < 7,
                 verdict = robust
-                  ? "ROBUSTE MULTI-PÉRIODES"
+                  ? "ROBUSTE HORS ÉCHANTILLON"
                   : insufficient
                     ? "PLUS DE DONNÉES REQUISES"
                     : "NON CONFIRMÉ",
-                verdictClass = robust ? "green" : "red";
+                verdictClass = robust ? "green" : "red",
+                testHitRate = finalTest.trades
+                  ? (finalTest.wins / finalTest.trades) * 100
+                  : 0;
               return `<tr>
                 <td><b>${name}</b></td>
-                <td><b>1:${targetR.toFixed(2)}</b> · BE +${beTriggerR.toFixed(2)}R</td>
-                <td>${label} · score ≥${minScore}</td>
-                <td>${metricText(development)} · WR ${(development.winRate * 100).toFixed(1)}%</td>
-                <td>${metricText(finalTest)} · WR ${(finalTest.winRate * 100).toFixed(1)}%</td>
-                <td>${positiveFolds}/${qualifiedFolds} blocs positifs · borne WR ${(finalLcb * 100).toFixed(1)}%</td>
+                <td><b>1:${targetR.toFixed(1)}</b></td>
+                <td>${context}</td>
+                <td>${metricText(development)}</td>
+                <td>${metricText(finalTest)}</td>
+                <td>${testHitRate.toFixed(1)}%</td>
                 <td>${medianMfe.toFixed(2)}R / ${medianMae.toFixed(2)}R</td>
                 <td><span class="validationBadge ${verdictClass}">${verdict}</span></td>
               </tr>`;
@@ -2692,32 +2448,13 @@
           )
           .join("");
         $("btStatus").textContent = n
-            ? `Moteur live V10.20 · OANDA bid/ask · M15 avec contexte H1/4H sur ${(days / 365.25).toFixed(2)} an · ${n} trades · ${wins} TP1 · ${losses} SL · ${breakevens} BE · ${timeouts} sorties après 8 h · ${pnl.toFixed(1)}R net. ${strategySummary}`
+            ? `V10.7 Daily Plan · OANDA bid/ask · M15 avec contexte H1/4H sur ${(days / 365.25).toFixed(2)} an · ${n} trades · ${wins} TP1 · ${losses} SL · ${breakevens} BE · ${timeouts} sorties après 8 h · ${pnl.toFixed(1)}R net. ${strategySummary}`
           : "Aucun signal complet clôturé sur les bougies disponibles.";
         $("btQuality").textContent =
-          `Fréquence : ${signalsPerWeek.toFixed(1)}/semaine · ${signalsPerDay.toFixed(2)}/jour de marché · ${noSignalDays} jour(s) et ${noSignalWeeks} semaine(s) sans entrée. Qualité : ${quality}. Validation : 75 % développement en 3 blocs + purge 8 h + 25 % période de test. Stratégies autorisées en direct : ${approvedStrategies.size ? [...approvedStrategies].join(", ") : "AUCUNE — MODE RECHERCHE"}. Sessions — ${sessionSummary || "aucune"}.`;
+          `Fréquence : ${signalsPerWeek.toFixed(1)}/semaine · ${signalsPerDay.toFixed(2)}/jour de marché · ${noSignalDays} jour(s) et ${noSignalWeeks} semaine(s) sans entrée. Qualité : ${quality}. Validation : 75 % développement + 25 % test final intact. Stratégies autorisées en direct : ${approvedStrategies.size ? [...approvedStrategies].join(", ") : "AUCUNE — MODE RECHERCHE"}. Sessions — ${sessionSummary || "aucune"}.`;
         validationReady = true;
         backtestComputed = true;
         setTimeout(() => analyze(), 0);
-      }
-      function renderBacktestOverview({ n, pnl, dd, from, to }) {
-        const number = (value, digits = 1) => value.toLocaleString("fr-CA", {
-          minimumFractionDigits: digits, maximumFractionDigits: digits,
-        });
-        const date = (time) => new Date(time).toLocaleDateString("fr-CA", {
-          timeZone: "America/Toronto", day: "numeric", month: "short", year: "numeric",
-        });
-        $("btPeriod").textContent = `${date(from)} – ${date(to)} · Prix bid/ask, coûts simulés inclus`;
-        $("btNet").textContent = n ? `${pnl > 0 ? "+" : ""}${number(pnl)} R` : "—";
-        $("btNet").className = "big" + (n && pnl < 0 ? " red" : "");
-        $("btVerdict").textContent = !n ? "Aucun trade clôturé sur cette période."
-          : pnl < 0 ? "Résultat historique négatif."
-          : pnl > 0 ? "Gain historique simulé · solidité à confirmer."
-          : "Résultat historique à l’équilibre.";
-        $("btVerdict").className = "small essentialHint" + (n && pnl < 0 ? " red" : "");
-        $("btMoney").textContent = n
-          ? `Exemple à 100 $ de risque fixe par trade : ${pnl > 0 ? "+" : ""}${number(pnl * 100, 0)} $ au total · recul maximal ${number(dd * 100, 0)} $.`
-          : "1 R = le montant risqué au départ sur un trade.";
       }
       function draw(r) {
         const c = $("chartCanvas"),
@@ -2760,31 +2497,39 @@
           x.font = "11px Arial";
           x.fillText(val.toFixed(2), w - 52, yy - 3);
         }
-        const paintZone = (low, high, fill, stroke, _label, active) => {
+        const paintZone = (low, high, fill, stroke, label, active) => {
           if (![low, high].every(Number.isFinite)) return;
           const top = y(Math.max(low, high)),
             bottom = y(Math.min(low, high)),
             zoneH = Math.max(3, bottom - top),
-            zoneLeft = Math.max(pad, w * 0.3),
-            zoneRight = w - 58,
-            zoneW = Math.max(20, zoneRight - zoneLeft);
-          // Subtle recent-price rectangle: the candles stay readable and the
-          // detailed zone name/range remains in the dedicated side card.
+            labelText = `${label}  ${fmt(low)} – ${fmt(high)}${active ? "  ·  SURVEILLANCE" : ""}`;
           x.fillStyle = fill;
-          x.fillRect(zoneLeft, top, zoneW, zoneH);
+          x.fillRect(0, top, w, zoneH);
           x.strokeStyle = stroke;
-          x.globalAlpha = active ? 0.8 : 0.48;
-          x.lineWidth = active ? 1.25 : 0.8;
-          x.strokeRect(zoneLeft, top, zoneW, zoneH);
-          x.globalAlpha = 1;
+          x.lineWidth = active ? 2 : 1;
+          x.beginPath();
+          x.moveTo(0, top);
+          x.lineTo(w, top);
+          x.moveTo(0, bottom);
+          x.lineTo(w, bottom);
+          x.stroke();
+          x.font = "bold 11px Arial";
+          const textW = x.measureText(labelText).width;
+          const tagY = Math.max(3, Math.min(h - 21, top + 5));
+          x.fillStyle = active ? stroke : "rgba(7, 12, 20, 0.88)";
+          x.fillRect(8, tagY, textW + 16, 18);
+          x.strokeStyle = stroke;
+          x.strokeRect(8, tagY, textW + 16, 18);
+          x.fillStyle = active ? "#071019" : stroke;
+          x.fillText(labelText, 16, tagY + 13);
         };
         if (chartZones) {
           paintZone(
             chartZones.sellLow,
             chartZones.sellHigh,
             chartZones.sellActive
-              ? "rgba(255, 93, 115, 0.105)"
-              : "rgba(255, 93, 115, 0.055)",
+              ? "rgba(255, 93, 115, 0.24)"
+              : "rgba(255, 93, 115, 0.12)",
             "#ff5d73",
             "SELL ZONE",
             chartZones.sellActive,
@@ -2793,8 +2538,8 @@
             chartZones.buyLow,
             chartZones.buyHigh,
             chartZones.buyActive
-              ? "rgba(32, 230, 160, 0.105)"
-              : "rgba(32, 230, 160, 0.055)",
+              ? "rgba(32, 230, 160, 0.24)"
+              : "rgba(32, 230, 160, 0.12)",
             "#20e6a0",
             "BUY ZONE",
             chartZones.buyActive,
@@ -2833,45 +2578,6 @@
         });
         x.stroke();
       }
-      function buildResearchExport(sourceRows, observedAt) {
-        if (!sourceRows.length || !Number.isFinite(observedAt) || observedAt <= 0)
-          throw Error("Actualise d’abord les données du marché.");
-        const fields = ["o", "h", "l", "c", "bo", "bh", "bl", "bc", "ao", "ah", "al", "ac"];
-        const closed = [], seen = new Set();
-        for (const row of sourceRows) {
-          if (!Number.isSafeInteger(row.t) || row.t % 300000)
-            throw Error("Horodatage M5 invalide : export interrompu.");
-          if (row.t + 300000 > observedAt) continue;
-          if (fields.some(k => !Number.isFinite(row[k]) || row[k] <= 0))
-            throw Error("Prix bid/ask incomplets : export interrompu.");
-          for (const p of ["", "b", "a"])
-            if (row[p + "l"] > Math.min(row[p + "o"], row[p + "c"]) || row[p + "h"] < Math.max(row[p + "o"], row[p + "c"]))
-              throw Error("Bougie incohérente : export interrompu.");
-          for (const k of ["o", "h", "l", "c"])
-            if (row["a" + k] < row["b" + k]) throw Error("Spread invalide : export interrompu.");
-          if (seen.has(row.t)) throw Error("Doublon de bougie : export interrompu.");
-          seen.add(row.t);
-          closed.push({ t: row.t, ...Object.fromEntries(fields.map(k => [k, row[k]])), complete: true });
-        }
-        if (!closed.length) throw Error("Aucune bougie clôturée disponible.");
-        closed.sort((a, b) => a.t - b.t);
-        return { schema: "smart-gold-m5-mba-v1", source: "Smart Gold / OANDA XAU_USD", observedAtUtc: new Date(observedAt).toISOString(), rows: closed };
-      }
-      function downloadResearchExport() {
-        const status = $("exportResearchStatus");
-        try {
-          if (isLoading) throw Error("Chargement en cours : réessaie une fois terminé.");
-          const data = buildResearchExport(rowsM5, rowsM5ObservedAt);
-          const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
-          const url = URL.createObjectURL(blob), link = document.createElement("a");
-          link.href = url;
-          link.download = "smart-gold-m5-" + data.observedAtUtc.replace(/[:.]/g, "-") + ".json";
-          document.body.appendChild(link); link.click(); link.remove();
-          setTimeout(() => URL.revokeObjectURL(url), 1000);
-          status.textContent = data.rows.length + " bougies exportées · dernière clôture " + new Date(data.rows.at(-1).t + 300000).toLocaleString("fr-CA");
-        } catch (error) { status.textContent = error.message; }
-      }
-      $("exportResearch").onclick = downloadResearchExport;
       $("refresh").onclick = load;
       window.addEventListener("resize", () => rows.length && draw(rows));
       setInterval(() => {
@@ -2896,4 +2602,3 @@
     </script>
   </body>
 </html>
-
